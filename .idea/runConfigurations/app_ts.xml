@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="app.ts" type="TypeScriptProgramRunner" factoryName="TypeScript" nameIsGenerated="true">
+    <module name="air-circulator" />
+    <option name="interpreterRef" value="project" />
+    <option name="interpreterOptions" value="" />
+    <option name="workingDirectory" value="" />
+    <option name="tsconfigFile" value="" />
+    <option name="extraTypeScriptOptions" value="" />
+    <option name="scriptName" value="C:\Users\ryodo\Documents\Programming\air-circulator\src\app.ts" />
+    <option name="programParameters" value="" />
+    <method v="2" />
+  </configuration>
+</component>
