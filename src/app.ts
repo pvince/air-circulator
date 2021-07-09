@@ -1,13 +1,13 @@
-import got from 'got'
-import { ITowerListResult } from './types/AcuparseTypes'
-import { FanMode, FanState, IThermostat, ThermostatMode, ThermostatState } from './types/RadioThermTypes'
+import _ from 'lodash'
+import * as acuparse from './acuparse/api'
+import * as radiotherm from './radiothermostat/api'
+import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types'
 
-const _ = require('lodash')
+acuparse.Settings.apiHost = 'http://192.168.1.126'
+radiotherm.Settings.apiHost = 'http://192.168.1.235'
 
-const acuparseURL = 'http://192.168.1.126'
 const officeTower = '00015652'
 const diningTower = '00002056'
-const radiothermostatURL = 'http://192.168.1.235'
 
 /**
  * Max temperature differential between the two specified locations. If the temperature differential is above this
@@ -15,54 +15,21 @@ const radiothermostatURL = 'http://192.168.1.235'
  */
 const MAX_TEMPERATURE_DIFF = 6
 
-/**
- * Returns the current temperature being reported to acuparse by the specified 'tower'.
- *
- * @param towerID The Acurite Tower ID
- */
-async function getAcuparseTemperature (towerID: string): Promise<number> {
-  const response = await got(`${acuparseURL}/api/v1/json/tower/?id=${towerID}`)
-
-  const towerList:ITowerListResult = JSON.parse(response.body)
-
-  return towerList.towers[towerID].tempF
-}
-
-/**
- * Returns the office temperature as it is being reported by acuparse.
- *
- */
-async function getOfficeTemperature (): Promise<number> {
-  return getAcuparseTemperature(officeTower)
-}
-
-/**
- *
- */
-async function getDiningRoomThermostat (): Promise<IThermostat> {
-  const response = await got(`${radiothermostatURL}/tstat`)
-
-  return JSON.parse(response.body)
-}
-
 async function setHouseFanMode (inFanMode: FanMode) {
   console.log(`Changing fan mode to ${FanMode[inFanMode]}`)
-
-  const param = {
-    fmode: inFanMode
-  }
-
-  await got.post(`${radiothermostatURL}/tstat`, { json: param })
+  await radiotherm.setFanMode(inFanMode)
 }
 
 async function test () {
-  const officeTemperature = await getOfficeTemperature()
+  console.log(`Currently: ${new Date()}`)
+
+  const officeTemperature = (await acuparse.getTower(officeTower)).tempF
   console.log(`Office temperature:\t${officeTemperature}`)
 
-  const diningTemperature = await getAcuparseTemperature(diningTower)
+  const diningTemperature = (await acuparse.getTower(diningTower)).tempF
   console.log(`Dining temperature:\t${diningTemperature}`)
 
-  const tstat = await getDiningRoomThermostat()
+  const tstat = await radiotherm.getThermostatState()
   console.log(`Current thermostat mode: ${ThermostatMode[tstat.tmode]}`)
   console.log(`Current thermostat state: ${ThermostatState[tstat.tstate]}`)
   console.log(`Current cool setpoint:\t${tstat.t_cool}`)
