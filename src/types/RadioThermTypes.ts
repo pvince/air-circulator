@@ -1,9 +1,10 @@
-/* eslint-disable camelcase */
+/* eslint-disable camelcase,no-unused-vars */
+// noinspection JSUnusedGlobalSymbols
 
 /**
  * Thermostat operating mode
  */
-export enum ThermoStatMode {
+export enum ThermostatMode {
     Off = 0,
     Heat,
     Cool,
@@ -70,21 +71,24 @@ export enum OperatingTargetMode {
     Cool
 }
 
-export interface IThermstat {
+/**
+ * Radio Thermostat 'state' interface.
+ */
+export interface IThermostat {
     temp: number,
-    tmode: ThermoStatMode,
+    tmode: ThermostatMode,
     fmode: FanMode,
     override: OverrideMode,
     hold: HoldMode,
-    t_cool?: number,
-    t_heat?: number,
-    it_heat?: number,
-    it_cool?: number,
-    a_heat?: number,
-    a_cool?: number,
-    a_mode?: AbsoluteTempMode,
+    t_cool: number,
+    t_heat: number,
+    it_heat: number,
+    it_cool: number,
+    a_heat: number,
+    a_cool: number,
+    a_mode: AbsoluteTempMode,
     tstate: ThermostatState,
     fstate: FanState,
-    time: string,
+    time: string, // todo: This is currently not the correct 'time' format.
     ttarget: OperatingTargetMode
 }
