@@ -3,10 +3,18 @@ import * as acuparse from './acuparse/api'
 import * as radiotherm from './radiothermostat/api'
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types'
 
+// Setup the API hosts for the acuparse & radio thermostat
 acuparse.Settings.apiHost = 'http://192.168.1.126'
 radiotherm.Settings.apiHost = 'http://192.168.1.235'
 
+/**
+ * Acurite tower ID for the office temperature sensor
+ */
 const officeTower = '00015652'
+
+/**
+ * Acurite tower ID for the dining room temperature sensor.
+ */
 const diningTower = '00002056'
 
 /**
@@ -20,15 +28,18 @@ async function setHouseFanMode (inFanMode: FanMode) {
   await radiotherm.setFanMode(inFanMode)
 }
 
-async function test () {
+async function runScript () {
+  // Print out the current date
   console.log(`Currently: ${new Date()}`)
 
+  // Print out some general temperature data from around the housue
   const officeTemperature = (await acuparse.getTower(officeTower)).tempF
   console.log(`Office temperature:\t${officeTemperature}`)
 
   const diningTemperature = (await acuparse.getTower(diningTower)).tempF
   console.log(`Dining temperature:\t${diningTemperature}`)
 
+  // Lookup the thermostat state.
   const tstat = await radiotherm.getThermostatState()
   console.log(`Current thermostat mode: ${ThermostatMode[tstat.tmode]}`)
   console.log(`Current thermostat state: ${ThermostatState[tstat.tstate]}`)
@@ -37,6 +48,7 @@ async function test () {
   console.log(`Fan mode ${FanMode[tstat.fmode]}`)
   console.log(`Fan state ${FanState[tstat.fstate]}`)
 
+  // Check to see what we should do with regards to the above info.
   if (tstat.tmode === ThermostatMode.Cool) {
     const tempDiff = _.round(officeTemperature - tstat.t_cool, 2)
     console.log(`Currently office is ${tempDiff} warmer than the setpoint`)
@@ -51,4 +63,7 @@ async function test () {
   }
 }
 
-test()
+runScript()
+  .catch((err) => {
+    console.error(`Error: ${err}`)
+  })
