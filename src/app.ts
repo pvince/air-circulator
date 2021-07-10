@@ -2,10 +2,17 @@ import _ from 'lodash'
 import * as acuparse from './acuparse/api'
 import * as radiotherm from './radiothermostat/api'
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types'
+const columnify = require('columnify')
 
 // Setup the API hosts for the acuparse & radio thermostat
 acuparse.Settings.apiHost = 'http://192.168.1.126'
 radiotherm.Settings.apiHost = 'http://192.168.1.235'
+
+/**
+ * Max temperature differential between the two specified locations. If the temperature differential is above this
+ * we will turn on the whole house fan.
+ */
+const MAX_TEMPERATURE_DIFF = 6
 
 /**
  * Acurite tower ID for the office temperature sensor
@@ -18,26 +25,43 @@ const officeTower = '00015652'
 const diningTower = '00002056'
 
 /**
- * Max temperature differential between the two specified locations. If the temperature differential is above this
- * we will turn on the whole house fan.
+ * Acurite tower ID for the bedroom temperature sensor.
  */
-const MAX_TEMPERATURE_DIFF = 6
+const bedroomTower = '00010242'
 
+/**
+ * Sets the house fan mode.
+ *
+ * @param inFanMode New fan mode
+ */
 async function setHouseFanMode (inFanMode: FanMode) {
   console.log(`Changing fan mode to ${FanMode[inFanMode]}`)
   await radiotherm.setFanMode(inFanMode)
 }
 
+/**
+ * Runs the process of checking temperatures, and seeing if we should change the fan state.
+ */
 async function runScript () {
   // Print out the current date
   console.log(`Currently: ${new Date()}`)
 
-  // Print out some general temperature data from around the housue
-  const officeTemperature = (await acuparse.getTower(officeTower)).tempF
-  console.log(`Office temperature:\t${officeTemperature}`)
+  // Print out some general temperature data from around the house
+  const office = await acuparse.getTower(officeTower)
+  const dining = await acuparse.getTower(diningTower)
+  const bedroom = await acuparse.getTower(bedroomTower)
 
-  const diningTemperature = (await acuparse.getTower(diningTower)).tempF
-  console.log(`Dining temperature:\t${diningTemperature}`)
+  const outputData = [office, dining, bedroom]
+  console.log(columnify(outputData, {
+    columns: ['name', 'tempF', 'lastUpdated'],
+    config: {
+      lastUpdated: {
+        dataTransform: (data: string) => (new Date(data)).toLocaleString()
+      }
+    }
+  }))
+
+  const officeTemperature = office.tempF
 
   // Lookup the thermostat state.
   const tstat = await radiotherm.getThermostatState()
@@ -63,6 +87,7 @@ async function runScript () {
   }
 }
 
+// Kicks off the process & handles any errors.
 runScript()
   .catch((err) => {
     console.error(`Error: ${err}`)

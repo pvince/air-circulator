@@ -2,7 +2,7 @@ export interface ITower {
     name: string,
     tempF: number,
     relH: string,
-    lastUpdated: Date
+    lastUpdated: string
 }
 
 export interface ITowerList {
