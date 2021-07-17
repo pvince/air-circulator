@@ -15,7 +15,7 @@ const devFormat = format.combine(
   })
 )
 
-export const logger = createLogger({
+export const msgLogger = createLogger({
   format: format.combine(
     format.errors({ stack: true }), // Handle errors (was automagic in winston@2)
     format.splat(), // Handle splat (was automagic in winston@2)
@@ -24,8 +24,19 @@ export const logger = createLogger({
   transports: [
     new transports.Console({ format: devFormat }),
     new transports.File({
-      filename: 'air-circulator.log',
+      filename: 'air-circulator-messages.log',
       level: 'error'
+    })
+  ]
+})
+
+export const statLogger = createLogger({
+  format: format.timestamp(),
+  transports: [
+    new transports.Console({ format: devFormat }),
+    new transports.File({
+      filename: 'air-circulator-events.json',
+      level: 'info'
     })
   ]
 })

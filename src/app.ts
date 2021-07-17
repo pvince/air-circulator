@@ -1,6 +1,7 @@
 import _ from 'lodash'
 import * as acuparse from './acuparse/api'
 import * as radiotherm from './radiothermostat/api'
+import { statLogger, msgLogger } from './settings'
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types'
 const columnify = require('columnify')
 
@@ -35,7 +36,7 @@ const bedroomTower = '00010242'
  * @param inFanMode New fan mode
  */
 async function setHouseFanMode (inFanMode: FanMode) {
-  console.log(`Changing fan mode to ${FanMode[inFanMode]}`)
+  statLogger.info(`Changing fan mode to ${FanMode[inFanMode]}`)
   await radiotherm.setFanMode(inFanMode)
 }
 
@@ -43,16 +44,13 @@ async function setHouseFanMode (inFanMode: FanMode) {
  * Runs the process of checking temperatures, and seeing if we should change the fan state.
  */
 async function runScript () {
-  // Print out the current date
-  console.log(`Currently: ${(new Date()).toLocaleString()}`)
-
   // Print out some general temperature data from around the house
   const office = await acuparse.getTower(officeTower)
   const dining = await acuparse.getTower(diningTower)
   const bedroom = await acuparse.getTower(bedroomTower)
 
   const outputData = [office, dining, bedroom]
-  console.log(columnify(outputData, {
+  msgLogger.info('\n' + columnify(outputData, {
     columns: ['name', 'tempF', 'lastUpdated'],
     config: {
       lastUpdated: {
@@ -65,24 +63,24 @@ async function runScript () {
 
   // Lookup the thermostat state.
   const tstat = await radiotherm.getThermostatState()
-  console.log(`Current thermostat mode: ${ThermostatMode[tstat.tmode]}`)
-  console.log(`Current thermostat state: ${ThermostatState[tstat.tstate]}`)
-  console.log(`Current cool setpoint:\t${tstat.t_cool}`)
-  console.log(`Current temperature:\t${tstat.temp}`)
-  console.log(`Fan mode ${FanMode[tstat.fmode]}`)
-  console.log(`Fan state ${FanState[tstat.fstate]}`)
+  msgLogger.info(`Current thermostat mode: ${ThermostatMode[tstat.tmode]}`)
+  msgLogger.info(`Current thermostat state: ${ThermostatState[tstat.tstate]}`)
+  msgLogger.info(`Current cool setpoint:\t${tstat.t_cool}`)
+  msgLogger.info(`Current temperature:\t${tstat.temp}`)
+  msgLogger.info(`Fan mode ${FanMode[tstat.fmode]}`)
+  msgLogger.info(`Fan state ${FanState[tstat.fstate]}`)
 
   // Check to see what we should do with regards to the above info.
   if (tstat.tmode === ThermostatMode.Cool) {
     const tempDiff = _.round(officeTemperature - tstat.t_cool, 2)
-    console.log(`Currently office is ${tempDiff} warmer than the setpoint`)
+    msgLogger.info(`Currently office is ${tempDiff} warmer than the setpoint`)
 
     if (tempDiff >= MAX_TEMPERATURE_DIFF && tstat.fmode !== FanMode.On) {
       await setHouseFanMode(FanMode.On)
     } else if (tstat.fmode !== FanMode.Circulate) {
       await setHouseFanMode(FanMode.Circulate)
     } else {
-      console.log(`No changes needed to fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
+      msgLogger.info(`No changes needed to fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
     }
   }
 }
@@ -90,5 +88,5 @@ async function runScript () {
 // Kicks off the process & handles any errors.
 runScript()
   .catch((err) => {
-    console.error(`Error: ${err}`)
+    msgLogger.error(`${err}\n${err.stack}`)
   })
