@@ -44,7 +44,7 @@ async function setHouseFanMode (inFanMode: FanMode) {
  */
 async function runScript () {
   // Print out the current date
-  console.log(`Currently: ${new Date()}`)
+  console.log(`Currently: ${(new Date()).toLocaleString()}`)
 
   // Print out some general temperature data from around the house
   const office = await acuparse.getTower(officeTower)
@@ -82,7 +82,7 @@ async function runScript () {
     } else if (tstat.fmode !== FanMode.Circulate) {
       await setHouseFanMode(FanMode.Circulate)
     } else {
-      console.log('No changes needed to fan state.')
+      console.log(`No changes needed to fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
     }
   }
 }
