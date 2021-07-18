@@ -75,8 +75,12 @@ async function runScript () {
     const tempDiff = _.round(officeTemperature - tstat.t_cool, 2)
     msgLogger.info(`Currently office is ${tempDiff} warmer than the setpoint`)
 
-    if (tempDiff >= MAX_TEMPERATURE_DIFF && tstat.fmode !== FanMode.On) {
-      await setHouseFanMode(FanMode.On)
+    if (tempDiff >= MAX_TEMPERATURE_DIFF) {
+      if (tstat.fmode !== FanMode.On) {
+        await setHouseFanMode(FanMode.On)
+      } else {
+        msgLogger.info(`No changes needed to fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
+      }
     } else if (tstat.fmode !== FanMode.Circulate) {
       await setHouseFanMode(FanMode.Circulate)
     } else {
@@ -88,5 +92,5 @@ async function runScript () {
 // Kicks off the process & handles any errors.
 runScript()
   .catch((err) => {
-    msgLogger.error(`${err}\n${err.stack}`)
+    msgLogger.error(err)
   })

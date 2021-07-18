@@ -6,7 +6,7 @@ const devFormat = format.combine(
   format.colorize(),
   format.timestamp(),
   format.splat(),
-  format.errors(),
+  format.errors({ stack: true }),
   format.printf(({ timestamp, level, message, ...rest }: TransformableInfo) => {
     let restString = JSON.stringify(rest, undefined, 2)
     restString = restString === '{}' ? '' : restString
@@ -17,9 +17,10 @@ const devFormat = format.combine(
 
 export const msgLogger = createLogger({
   format: format.combine(
-    format.errors({ stack: true }), // Handle errors (was automagic in winston@2)
-    format.splat(), // Handle splat (was automagic in winston@2)
-    format.timestamp()
+    format.timestamp(),
+    format.errors({ stack: true }),
+    format.json(),
+    format.prettyPrint()
   ),
   transports: [
     new transports.Console({ format: devFormat }),
@@ -31,7 +32,11 @@ export const msgLogger = createLogger({
 })
 
 export const statLogger = createLogger({
-  format: format.timestamp(),
+  format: format.combine(
+    format.timestamp(),
+    format.json(),
+    format.prettyPrint()
+  ),
   transports: [
     new transports.Console({ format: devFormat }),
     new transports.File({
