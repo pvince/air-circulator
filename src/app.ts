@@ -3,17 +3,27 @@ import * as acuparse from './acuparse/api'
 import * as radiotherm from './radiothermostat/api'
 import { statLogger, msgLogger } from './settings'
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types'
+import { Client } from 'tplink-smarthome-api'
 const columnify = require('columnify')
 
 // Setup the API hosts for the acuparse & radio thermostat
 acuparse.Settings.apiHost = 'http://192.168.1.126'
 radiotherm.Settings.apiHost = 'http://192.168.1.235'
+const officePlug = '192.168.1.147'
+
+const plugClient = new Client()
 
 /**
  * Max temperature differential between the two specified locations. If the temperature differential is above this
  * we will turn on the whole house fan.
  */
 const MAX_TEMPERATURE_DIFF = 6
+
+/**
+ * Max temperature differential between the two specified locations. If the temperature differential is above this we
+ * will turn on the office fan.
+ */
+const OFFICE_FAN_TEMP_DIFF = 3
 
 /**
  * Acurite tower ID for the office temperature sensor
@@ -38,6 +48,19 @@ const bedroomTower = '00010242'
 async function setHouseFanMode (inFanMode: FanMode) {
   statLogger.info(`Changing fan mode to ${FanMode[inFanMode]}`)
   await radiotherm.setFanMode(inFanMode)
+}
+
+async function setOfficeFanMode (setFanOn: boolean) {
+  statLogger.info(`Changing office fan mode to ${setFanOn ? 'on' : 'off'}`)
+
+  const plugDevice = await plugClient.getDevice({ host: officePlug })
+
+  await plugDevice.setPowerState(setFanOn)
+}
+
+async function isOfficeFanOn (): Promise<boolean> {
+  const plugDevice = await plugClient.getDevice({ host: officePlug })
+  return plugDevice.getPowerState()
 }
 
 /**
@@ -75,6 +98,7 @@ async function runScript () {
     const tempDiff = _.round(officeTemperature - tstat.t_cool, 2)
     msgLogger.info(`Currently office is ${tempDiff} warmer than the setpoint`)
 
+    // Check & set the whole house fan
     if (tempDiff >= MAX_TEMPERATURE_DIFF) {
       if (tstat.fmode !== FanMode.On) {
         await setHouseFanMode(FanMode.On)
@@ -84,7 +108,19 @@ async function runScript () {
     } else if (tstat.fmode !== FanMode.Circulate) {
       await setHouseFanMode(FanMode.Circulate)
     } else {
-      msgLogger.info(`No changes needed to fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
+      msgLogger.info(`No changes needed to house fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
+    }
+
+    // Check & set the office fan.
+    const isFanOn = await isOfficeFanOn()
+    if (tempDiff >= OFFICE_FAN_TEMP_DIFF) {
+      if (!isFanOn) {
+        await setOfficeFanMode(true)
+      }
+    } else if (isFanOn) {
+      await setOfficeFanMode(false)
+    } else {
+      msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${isFanOn ? 'on' : 'off'}`)
     }
   }
 }
