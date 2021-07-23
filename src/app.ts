@@ -116,6 +116,8 @@ async function runScript () {
     if (tempDiff >= OFFICE_FAN_TEMP_DIFF) {
       if (!isFanOn) {
         await setOfficeFanMode(true)
+      } else {
+        msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
       }
     } else if (isFanOn) {
       await setOfficeFanMode(false)
