@@ -45,3 +45,7 @@ export const statLogger = createLogger({
     })
   ]
 })
+
+export function LogError (message: string, err: Error) {
+  msgLogger.error({ message: `${message} ${err.message}`, err: err, stack: err.stack })
+}

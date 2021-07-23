@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import * as acuparse from './acuparse/api'
 import * as radiotherm from './radiothermostat/api'
-import { statLogger, msgLogger } from './settings'
+import { statLogger, msgLogger, LogError } from './settings'
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types'
 import { Client } from 'tplink-smarthome-api'
 const columnify = require('columnify')
@@ -20,10 +20,9 @@ const plugClient = new Client()
 const MAX_TEMPERATURE_DIFF = 6
 
 /**
- * Max temperature differential between the two specified locations. If the temperature differential is above this we
- * will turn on the office fan.
+ * Temperature at which the small office fan will be toggled on // off
  */
-const OFFICE_FAN_TEMP_DIFF = 3
+const OFFICE_TEMPERATURE_THRESHOLD = 77
 
 /**
  * Acurite tower ID for the office temperature sensor
@@ -64,6 +63,58 @@ async function isOfficeFanOn (): Promise<boolean> {
 }
 
 /**
+ * Runs code that prints out the current thermostat state, and determines if the fan state should be changed.
+ * @param officeTemperature Current office temperature
+ */
+async function checkAndSetThermostat (officeTemperature: number) {
+  // Lookup the thermostat state.
+  const tstat = await radiotherm.getThermostatState()
+  msgLogger.info(`Current thermostat mode: ${ThermostatMode[tstat.tmode]}`)
+  msgLogger.info(`Current thermostat state: ${ThermostatState[tstat.tstate]}`)
+  msgLogger.info(`Current cool setpoint:\t${tstat.t_cool}`)
+  msgLogger.info(`Current temperature:\t${tstat.temp}`)
+  msgLogger.info(`Fan mode ${FanMode[tstat.fmode]}`)
+  msgLogger.info(`Fan state ${FanState[tstat.fstate]}`)
+
+  if (tstat.tmode === ThermostatMode.Cool) {
+    const tempDiff = _.round(officeTemperature - tstat.t_cool, 2)
+    msgLogger.info(`Currently office is ${tempDiff} warmer than the setpoint`)
+
+    // Check & set the whole house fan
+    if (tempDiff >= MAX_TEMPERATURE_DIFF) {
+      if (tstat.fmode !== FanMode.On) {
+        await setHouseFanMode(FanMode.On)
+      } else {
+        msgLogger.info(`No changes needed to fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
+      }
+    } else if (tstat.fmode !== FanMode.Circulate) {
+      await setHouseFanMode(FanMode.Circulate)
+    } else {
+      msgLogger.info(`No changes needed to house fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
+    }
+  }
+}
+
+/**
+ * Checks the current fan state in the office and determines if it should be turned on or off.
+ * @param officeTemperature Current office temperature.
+ */
+async function checkAndSetOfficeFan (officeTemperature: number) {
+  const isFanOn = await isOfficeFanOn()
+  if (officeTemperature >= OFFICE_TEMPERATURE_THRESHOLD) {
+    if (!isFanOn) {
+      await setOfficeFanMode(true)
+    } else {
+      msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${isFanOn ? 'on' : 'off'}`)
+    }
+  } else if (isFanOn) {
+    await setOfficeFanMode(false)
+  } else {
+    msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${isFanOn ? 'on' : 'off'}`)
+  }
+}
+
+/**
  * Runs the process of checking temperatures, and seeing if we should change the fan state.
  */
 async function runScript () {
@@ -84,47 +135,19 @@ async function runScript () {
 
   const officeTemperature = office.tempF
 
-  // Lookup the thermostat state.
-  const tstat = await radiotherm.getThermostatState()
-  msgLogger.info(`Current thermostat mode: ${ThermostatMode[tstat.tmode]}`)
-  msgLogger.info(`Current thermostat state: ${ThermostatState[tstat.tstate]}`)
-  msgLogger.info(`Current cool setpoint:\t${tstat.t_cool}`)
-  msgLogger.info(`Current temperature:\t${tstat.temp}`)
-  msgLogger.info(`Fan mode ${FanMode[tstat.fmode]}`)
-  msgLogger.info(`Fan state ${FanState[tstat.fstate]}`)
-
   // Check to see what we should do with regards to the above info.
-  if (tstat.tmode === ThermostatMode.Cool) {
-    const tempDiff = _.round(officeTemperature - tstat.t_cool, 2)
-    msgLogger.info(`Currently office is ${tempDiff} warmer than the setpoint`)
-
-    // Check & set the whole house fan
-    if (tempDiff >= MAX_TEMPERATURE_DIFF) {
-      if (tstat.fmode !== FanMode.On) {
-        await setHouseFanMode(FanMode.On)
-      } else {
-        msgLogger.info(`No changes needed to fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
-      }
-    } else if (tstat.fmode !== FanMode.Circulate) {
-      await setHouseFanMode(FanMode.Circulate)
-    } else {
-      msgLogger.info(`No changes needed to house fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
-    }
-
-    // Check & set the office fan.
-    const isFanOn = await isOfficeFanOn()
-    if (tempDiff >= OFFICE_FAN_TEMP_DIFF) {
-      if (!isFanOn) {
-        await setOfficeFanMode(true)
-      } else {
-        msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
-      }
-    } else if (isFanOn) {
-      await setOfficeFanMode(false)
-    } else {
-      msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${isFanOn ? 'on' : 'off'}`)
-    }
+  try {
+    await checkAndSetThermostat(officeTemperature)
+  } catch (err) {
+    LogError('Failed to check or set thermostat state.', err)
   }
+
+  try {
+    await checkAndSetOfficeFan(officeTemperature)
+  } catch (err) {
+    LogError('Failed to check or set office fan state.', err)
+  }
+  // Check & set the office fan.
 }
 
 // Kicks off the process & handles any errors.
