@@ -4,12 +4,12 @@ import * as radiotherm from './radiothermostat/api'
 import { LogError, msgLogger, statLogger } from './settings'
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types'
 import columnify from 'columnify'
-import { KazaPlug, PlugState } from './tplink/api'
+import { SmartPlug, PlugState } from './tplink/api'
 
 // Setup the API hosts for the acuparse & radio thermostat
 acuparse.Settings.apiHost = 'http://192.168.1.126'
 radiotherm.Settings.apiHost = 'http://192.168.1.235'
-const officePlug = new KazaPlug('192.168.1.147')
+const officePlug = new SmartPlug('192.168.1.147')
 
 /**
  * Max temperature differential between the two specified locations. If the temperature differential is above this
