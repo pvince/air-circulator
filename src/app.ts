@@ -3,15 +3,13 @@ import * as acuparse from './acuparse/api'
 import * as radiotherm from './radiothermostat/api'
 import { LogError, msgLogger, statLogger } from './settings'
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types'
-import { Client } from 'tplink-smarthome-api'
 import columnify from 'columnify'
+import { KazaPlug, PlugState } from './tplink/api'
 
 // Setup the API hosts for the acuparse & radio thermostat
 acuparse.Settings.apiHost = 'http://192.168.1.126'
 radiotherm.Settings.apiHost = 'http://192.168.1.235'
-const officePlug = '192.168.1.147'
-
-const plugClient = new Client()
+const officePlug = new KazaPlug('192.168.1.147')
 
 /**
  * Max temperature differential between the two specified locations. If the temperature differential is above this
@@ -54,20 +52,16 @@ async function setHouseFanMode (inFanMode: FanMode) {
  *
  * @param inFanState Fan state to set on the office fan.
  */
-async function setOfficeFanState (inFanState: FanState) {
-  statLogger.info(`Changing office fan mode to ${FanState[inFanState]}`)
-
-  const plugDevice = await plugClient.getDevice({ host: officePlug })
-
-  await plugDevice.setPowerState(inFanState === FanState.On)
+async function setOfficeFanState (inFanState: PlugState) {
+  statLogger.info(`Changing office fan mode to ${PlugState[inFanState]}`)
+  await officePlug.setPlugState(inFanState)
 }
 
 /**
  * Determines the current operating fan state of the office fan.
  */
-async function getOfficeFanState (): Promise<FanState> {
-  const plugDevice = await plugClient.getDevice({ host: officePlug })
-  return (await plugDevice.getPowerState()) ? FanState.On : FanState.Off
+async function getOfficeFanState (): Promise<PlugState> {
+  return await officePlug.getState()
 }
 
 /**
@@ -110,13 +104,13 @@ async function checkAndSetThermostat (officeTemperature: number) {
 async function checkAndSetOfficeFan (officeTemperature: number) {
   const officeFanState = await getOfficeFanState()
   if (officeTemperature >= OFFICE_TEMPERATURE_THRESHOLD) {
-    if (officeFanState === FanState.Off) {
-      await setOfficeFanState(FanState.On)
+    if (officeFanState === PlugState.Off) {
+      await setOfficeFanState(PlugState.On)
     } else {
       msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${FanState[officeFanState]}`)
     }
-  } else if (officeFanState === FanState.On) {
-    await setOfficeFanState(FanState.Off)
+  } else if (officeFanState === PlugState.On) {
+    await setOfficeFanState(PlugState.Off)
   } else {
     msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${FanState[officeFanState]}`)
   }
