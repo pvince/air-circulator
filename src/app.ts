@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import * as acuparse from './acuparse/api'
 import * as radiotherm from './radiothermostat/api'
-import { LogError, msgLogger, statLogger } from './settings'
+import { logError, msgLogger, statLogger } from './settings'
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types'
 import columnify from 'columnify'
 import { SmartPlug, PlugState } from './tplink/api'
@@ -141,13 +141,13 @@ async function runScript () {
   try {
     await checkAndSetThermostat(officeTemperature)
   } catch (err) {
-    LogError('Failed to check or set thermostat state.', err)
+    logError('Failed to check or set thermostat state.', err)
   }
 
   try {
     await checkAndSetOfficeFan(officeTemperature)
   } catch (err) {
-    LogError('Failed to check or set office fan state.', err)
+    logError('Failed to check or set office fan state.', err)
   }
   // Check & set the office fan.
 }

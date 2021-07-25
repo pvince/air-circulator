@@ -2,6 +2,9 @@ import { TransformableInfo } from 'logform'
 
 const { createLogger, format, transports } = require('winston')
 
+/**
+ * Pretty console error formatting for the winston logger
+ */
 const devFormat = format.combine(
   format.colorize(),
   format.timestamp(),
@@ -15,6 +18,9 @@ const devFormat = format.combine(
   })
 )
 
+/**
+ * General output & error logger. Writes pretty print messages to the console, writes error messages to a log file.
+ */
 export const msgLogger = createLogger({
   format: format.combine(
     format.timestamp(),
@@ -31,6 +37,9 @@ export const msgLogger = createLogger({
   ]
 })
 
+/**
+ * Event logger or 'Stats' logger. Logs when important events happen (eg: Turned the lights on, changed the fan mode)
+ */
 export const statLogger = createLogger({
   format: format.combine(
     format.timestamp(),
@@ -46,6 +55,12 @@ export const statLogger = createLogger({
   ]
 })
 
-export function LogError (message: string, err: Error) {
+/**
+ * Ensures consistent error logging.
+ *
+ * @param message Helpful message describing the error
+ * @param err Error object
+ */
+export function logError (message: string, err: Error) {
   msgLogger.error({ message: `${message} ${err.message}`, err: err, stack: err.stack })
 }
