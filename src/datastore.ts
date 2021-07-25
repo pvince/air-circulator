@@ -75,6 +75,11 @@ export abstract class DataStoreAccessor {
   abstract dataName(): string
 
   /**
+   * Gets the current state of the item we are tracking.
+   */
+  abstract getState<Type>(): Promise<Type>
+
+  /**
    * If there is a deviation time stored, this determines how long ago it happened in minutes.
    * @param devData Deviation data to check
    * @private
@@ -88,17 +93,17 @@ export abstract class DataStoreAccessor {
   /**
    * Checks to see if the provided data represents a 'deviation'.
    *
-   * @param inState
    * @returns Returns true if we are in an active 'deviation' state, false otherwise.
    */
-  async checkForDeviation<Type> (inState: Type): Promise<boolean> {
+  async checkForDeviation (): Promise<boolean> {
     const savedData = await loadData()
+    const currentState = await this.getState()
 
     let result = false
 
     const previousData = savedData[this.dataName()]
     if (previousData !== null) {
-      if (previousData.expectedData !== inState) {
+      if (previousData.expectedData !== currentState) {
         // Current conditions do not match previously saved data.
         if (previousData.deviationDate === null) {
           // Previous data does not have a 'deviation time', this is the first time
@@ -123,10 +128,10 @@ export abstract class DataStoreAccessor {
 
   /**
    * Ensures our current state data gets written to the saved data
-   * @param inState State to save
    */
-  async storeData<Type> (inState: Type) {
-    await setData(this.dataName(), inState)
+  async storeState () {
+    const currentState = await this.getState()
+    await setData(this.dataName(), currentState)
     saveData()
   }
 }
