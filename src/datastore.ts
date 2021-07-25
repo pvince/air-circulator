@@ -85,13 +85,14 @@ export async function setData<Type> (inKey: string, inData: Type) {
 }
 
 /**
+ * Max time that we should a allow a setting to deviate.
+ */
+const DEVIATION_LIMIT = 60
+
+/**
  * Abstract class that can be implemented by specific data providers to store data into the cached file
  */
 export abstract class DataStoreAccessor {
-  /**
-   * Max time that we should a allow a setting to deviate.
-   */
-  const DEVIATION_LIMIT = 60
 
   /**
    * Name used to store this data into cache
@@ -123,7 +124,7 @@ export abstract class DataStoreAccessor {
    */
   async getRemainingDeviationMinutes (): Promise<number> {
     const deviationData = await getDeviationData(this.dataName())
-    return this.DEVIATION_LIMIT - this._getDeviationDifference(deviationData)
+    return DEVIATION_LIMIT - this._getDeviationDifference(deviationData)
   }
 
   /**
@@ -146,7 +147,7 @@ export abstract class DataStoreAccessor {
           result = true
           previousData.deviationDate = new Date()
           await saveData()
-        } else if (this._getDeviationDifference(previousData) <= this.DEVIATION_LIMIT) {
+        } else if (this._getDeviationDifference(previousData) <= DEVIATION_LIMIT) {
           // We have previously detected the deviation, but it occurred in the last 60 minutes
           // so continue to report that we are in a deviation state.
           result = true
