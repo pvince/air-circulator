@@ -98,7 +98,7 @@ async function checkAndSetThermostat (officeTemperature: number) {
       }
     }
   } else {
-    msgLogger.info(`Fan mode is currently overridden to ${FanMode[tstat.fmode]} for the next ${await ThermoStatFanData.getRemainingDeviationMinutes()}.`)
+    msgLogger.info(`Fan mode is currently overridden to ${FanMode[tstat.fmode]} for the next ${await ThermoStatFanData.getRemainingDeviationMinutes()} minutes.`)
   }
 }
 
