@@ -121,7 +121,7 @@ async function checkAndSetOfficeFan (officeTemperature: number) {
       msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${PlugState[officeFanState]}`)
     }
   } else {
-    msgLogger.info(`Office fan is currently overridden to be ${PlugState[await officePlug.getState()]}`)
+    msgLogger.info(`Office fan is currently overridden to ${PlugState[await officePlug.getState()]} for the next ${await officePlug.getRemainingDeviationMinutes()} minutes`)
   }
 }
 

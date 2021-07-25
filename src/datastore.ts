@@ -47,18 +47,38 @@ export async function loadData (): Promise<IDataStore> {
 }
 
 /**
+ * Returns either the current stored data for a specific key, or null if no data exists.
+ * @param inKey Key to retrieve data for.
+ */
+export async function getDeviationData (inKey: string): Promise<IDeviationData|null> {
+  const storedData = await loadData()
+  return storedData[inKey] ?? null
+}
+
+/**
+ * Stores the provided deviation into the data store.
+ *
+ * @param inKey Key to the data to save
+ * @param inData Deviation data object to save.
+ */
+export async function setDeviationData (inKey: string, inData: IDeviationData) {
+  const savedData = await loadData()
+  savedData[inKey] = inData
+  await saveData()
+}
+
+/**
  * Stores a specific value into the data cache.
  * @param inKey Data access key
  * @param inData Data to store
  */
 export async function setData<Type> (inKey: string, inData: Type) {
-  const savedData = await loadData()
-  const previousReading = savedData[inKey] ?? null
+  const previousReading = await getDeviationData(inKey)
   if (previousReading === null) {
-    savedData[inKey] = {
+    await setDeviationData(inKey, {
       expectedData: inData,
       deviationDate: null
-    }
+    })
   } else {
     previousReading.expectedData = inData
   }
@@ -90,7 +110,15 @@ export abstract class DataStoreAccessor {
     }
     const deviationTime = devData?.deviationDate?.getTime()
 
-    return deviationTime ? ((new Date()).getTime() - deviationTime) / 1000 / 60 : 0
+    return deviationTime ? Math.ceil(((new Date()).getTime() - deviationTime) / 1000 / 60) : 0
+  }
+
+  /**
+   * If there is an active deviation data with a deviation date, find out how much longer it is active, in minutes.
+   */
+  async getRemainingDeviationMinutes (): Promise<number> {
+    const deviationData = await getDeviationData(this.dataName())
+    return this._getDeviationDifference(deviationData)
   }
 
   /**
@@ -99,12 +127,11 @@ export abstract class DataStoreAccessor {
    * @returns Returns true if we are in an active 'deviation' state, false otherwise.
    */
   async checkForDeviation (): Promise<boolean> {
-    const savedData = await loadData()
     const currentState = await this.getState()
 
     let result = false
 
-    const previousData = savedData[this.dataName()] ?? null
+    const previousData = await getDeviationData(this.dataName())
     if (previousData !== null) {
       if (previousData.expectedData !== currentState) {
         // Current conditions do not match previously saved data.
@@ -123,6 +150,7 @@ export abstract class DataStoreAccessor {
           // it has been more than 60 minutes since this state was detected. Clear our deviation data
           // and say we are ready to allow state changes again.
           previousData.deviationDate = null
+          await this.storeState()
         }
       }
     } else {
