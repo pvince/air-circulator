@@ -1,0 +1,9 @@
+1. Load previous data
+2. Check current conditions
+3. If current condition != previous data
+  3.1. If previous data does not have a 'deviation time', set a deviation time, and bail.
+  3.2. If previous data HAS a 'deviation time', check if 'deviation time' <= Max deviation duration
+    3.2.1.  If before deviation expiration, bail.
+    3.2.2.  If after deviation expiration, clear deviation setting, and continue
+3. Determine what we should do based on current conditions.
+4.
