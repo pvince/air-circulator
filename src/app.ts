@@ -5,6 +5,7 @@ import { logError, msgLogger, statLogger } from './settings'
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types'
 import columnify from 'columnify'
 import { SmartPlug, PlugState } from './tplink/api'
+import { ThermoStatFanData } from './radiothermostat/dataAccessors'
 
 // Setup the API hosts for the acuparse & radio thermostat
 acuparse.Settings.apiHost = 'http://192.168.1.126'
@@ -78,22 +79,26 @@ async function checkAndSetThermostat (officeTemperature: number) {
   msgLogger.info(`Fan mode ${FanMode[tstat.fmode]}`)
   msgLogger.info(`Fan state ${FanState[tstat.fstate]}`)
 
-  if (tstat.tmode === ThermostatMode.Cool) {
-    const tempDiff = _.round(officeTemperature - tstat.t_cool, 2)
-    msgLogger.info(`Currently office is ${tempDiff} warmer than the setpoint`)
+  if (!(await ThermoStatFanData.checkForDeviation())) {
+    if (tstat.tmode === ThermostatMode.Cool) {
+      const tempDiff = _.round(officeTemperature - tstat.t_cool, 2)
+      msgLogger.info(`Currently office is ${tempDiff} warmer than the setpoint`)
 
-    // Check & set the whole house fan
-    if (tempDiff >= MAX_TEMPERATURE_DIFF) {
-      if (tstat.fmode !== FanMode.On) {
-        await setHouseFanMode(FanMode.On)
+      // Check & set the whole house fan
+      if (tempDiff >= MAX_TEMPERATURE_DIFF) {
+        if (tstat.fmode !== FanMode.On) {
+          await setHouseFanMode(FanMode.On)
+        } else {
+          msgLogger.info(`No changes needed to fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
+        }
+      } else if (tstat.fmode !== FanMode.Circulate) {
+        await setHouseFanMode(FanMode.Circulate)
       } else {
-        msgLogger.info(`No changes needed to fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
+        msgLogger.info(`No changes needed to house fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
       }
-    } else if (tstat.fmode !== FanMode.Circulate) {
-      await setHouseFanMode(FanMode.Circulate)
-    } else {
-      msgLogger.info(`No changes needed to house fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
     }
+  } else {
+    msgLogger.info(`Fan mode is currently overridden to be ${FanMode[tstat.fmode]}.`)
   }
 }
 
@@ -102,17 +107,21 @@ async function checkAndSetThermostat (officeTemperature: number) {
  * @param officeTemperature Current office temperature.
  */
 async function checkAndSetOfficeFan (officeTemperature: number) {
-  const officeFanState = await getOfficeFanState()
-  if (officeTemperature >= OFFICE_TEMPERATURE_THRESHOLD) {
-    if (officeFanState === PlugState.Off) {
-      await setOfficeFanState(PlugState.On)
+  if (!(await officePlug.checkForDeviation())) {
+    const officeFanState = await getOfficeFanState()
+    if (officeTemperature >= OFFICE_TEMPERATURE_THRESHOLD) {
+      if (officeFanState === PlugState.Off) {
+        await setOfficeFanState(PlugState.On)
+      } else {
+        msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${PlugState[officeFanState]}`)
+      }
+    } else if (officeFanState === PlugState.On) {
+      await setOfficeFanState(PlugState.Off)
     } else {
-      msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${FanState[officeFanState]}`)
+      msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${PlugState[officeFanState]}`)
     }
-  } else if (officeFanState === PlugState.On) {
-    await setOfficeFanState(PlugState.Off)
   } else {
-    msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${FanState[officeFanState]}`)
+    msgLogger.info(`Office fan is currently overridden to be ${PlugState[await officePlug.getState()]}`)
   }
 }
 

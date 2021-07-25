@@ -1,5 +1,5 @@
 import fs from 'fs-extra'
-
+import _ from 'lodash'
 /**
  * Data used to detect deviation from a set value.
  */
@@ -41,10 +41,9 @@ export async function loadData (): Promise<IDataStore> {
       dataStore = await fs.readJson(DATASTORE_FILENAME)
     }
   }
-  return dataStore ?? {
-    houseFan: null,
-    officeFan: null
-  }
+  dataStore = dataStore ?? {}
+
+  return dataStore
 }
 
 /**
@@ -54,7 +53,7 @@ export async function loadData (): Promise<IDataStore> {
  */
 export async function setData<Type> (inKey: string, inData: Type) {
   const savedData = await loadData()
-  const previousReading = savedData[inKey]
+  const previousReading = savedData[inKey] ?? null
   if (previousReading === null) {
     savedData[inKey] = {
       expectedData: inData,
@@ -77,7 +76,7 @@ export abstract class DataStoreAccessor {
   /**
    * Gets the current state of the item we are tracking.
    */
-  abstract getState<Type>(): Promise<Type>
+  abstract getState(): Promise<any>
 
   /**
    * If there is a deviation time stored, this determines how long ago it happened in minutes.
@@ -85,6 +84,10 @@ export abstract class DataStoreAccessor {
    * @private
    */
   _getDeviationDifference (devData: IDeviationData | null): number {
+    if (_.isString(devData?.deviationDate)) {
+      // @ts-ignore
+      devData.deviationDate = new Date(devData.deviationDate)
+    }
     const deviationTime = devData?.deviationDate?.getTime()
 
     return deviationTime ? ((new Date()).getTime() - deviationTime) / 1000 / 60 : 0
@@ -101,7 +104,7 @@ export abstract class DataStoreAccessor {
 
     let result = false
 
-    const previousData = savedData[this.dataName()]
+    const previousData = savedData[this.dataName()] ?? null
     if (previousData !== null) {
       if (previousData.expectedData !== currentState) {
         // Current conditions do not match previously saved data.
@@ -110,6 +113,7 @@ export abstract class DataStoreAccessor {
           // the deviation has been detected.
           result = true
           previousData.deviationDate = new Date()
+          await saveData()
         } else if (this._getDeviationDifference(previousData) <= 60) {
           // We have previously detected the deviation, but it occurred in the last 60 minutes
           // so continue to report that we are in a deviation state.
@@ -121,6 +125,9 @@ export abstract class DataStoreAccessor {
           previousData.deviationDate = null
         }
       }
+    } else {
+      // Looks like we didn't have a stored state, store one now.
+      await this.storeState()
     }
 
     return result
@@ -132,6 +139,6 @@ export abstract class DataStoreAccessor {
   async storeState () {
     const currentState = await this.getState()
     await setData(this.dataName(), currentState)
-    saveData()
+    await saveData()
   }
 }

@@ -1,6 +1,7 @@
 import { FanMode, IThermostat } from './types'
 import { URLSearchParams } from 'url'
 import got from 'got'
+import { ThermoStatFanData } from './dataAccessors'
 
 export interface ISettings {
     /**
@@ -25,4 +26,5 @@ export async function getThermostatState (): Promise<IThermostat> {
 
 export async function setFanMode (inFanMode: FanMode) {
   await _runPostRequest('tstat', { fmode: inFanMode })
+  await ThermoStatFanData.storeState()
 }

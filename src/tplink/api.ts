@@ -1,4 +1,5 @@
 import { Client } from 'tplink-smarthome-api'
+import { DataStoreAccessor } from '../datastore'
 
 /**
  * Declares an enum that can be used to toggle the plug state.
@@ -14,7 +15,7 @@ export enum PlugState {
 /**
  * A helper class that wraps up the 'Smart Plug' functionality.
  */
-export class SmartPlug {
+export class SmartPlug extends DataStoreAccessor {
   /**
    * IP Address for the plug
    */
@@ -31,8 +32,13 @@ export class SmartPlug {
    * @param inAddress - IP Address for the plug to control
    */
   constructor (inAddress: string) {
+    super()
     this.address = inAddress
     this.plugClient = new Client()
+  }
+
+  dataName (): string {
+    return this.address
   }
 
   /**
@@ -52,5 +58,6 @@ export class SmartPlug {
     const plugDevice = await this.plugClient.getDevice({ host: this.address })
 
     await plugDevice.setPowerState(inPlugState === PlugState.On)
+    await this.storeState()
   }
 }
