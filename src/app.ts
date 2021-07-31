@@ -10,7 +10,7 @@ import { ThermoStatFanData } from './radiothermostat/dataAccessors'
 // Setup the API hosts for the acuparse & radio thermostat
 acuparse.Settings.apiHost = 'http://192.168.1.126'
 radiotherm.Settings.apiHost = 'http://192.168.1.235'
-const officePlug = new SmartPlug('192.168.1.147')
+const officePlug = new SmartPlug('192.168.1.100')
 
 /**
  * Max temperature differential between the two specified locations. If the temperature differential is above this
