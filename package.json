@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "search": "tsc && node dist/identify.js",
     "start": "tsc && node dist/app.js",
     "build": "rm -rf dist && tsc"
   },
