@@ -26,6 +26,8 @@
     "typescript": "^4.3.5"
   },
   "dependencies": {
+    "@types/cli-progress": "^3.9.2",
+    "cli-progress": "^3.9.0",
     "columnify": "^1.5.4",
     "fs-extra": "^10.0.0",
     "got": "^11.8.2",

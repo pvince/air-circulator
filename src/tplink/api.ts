@@ -1,5 +1,6 @@
 import { Client } from 'tplink-smarthome-api'
 import { DataStoreAccessor } from '../datastore'
+import { AnyDevice } from 'tplink-smarthome-api/lib/client'
 
 /**
  * Declares an enum that can be used to toggle the plug state.
@@ -60,4 +61,62 @@ export class SmartPlug extends DataStoreAccessor {
     await plugDevice.setPowerState(inPlugState === PlugState.On)
     await this.storeState()
   }
+}
+
+/**
+ * Optional parameters for finding devices.
+ */
+export interface IFindDevicesOptions {
+  /**
+   * How long should we search (in seconds) for devices? (Default: 60 seconds)
+   */
+  discoveryPeriod?: number,
+  /**
+   * Callback that delivers progress updates. (Default: no-op)
+   *
+   * @param total Total time (milliseconds)
+   * @param current Current elapsed time (milliseconds)
+   * @param deviceCount How many devices have been found so far?
+   */
+  progress?: (total: number, current: number, deviceCount: number) => void,
+  /**
+   * Network mask passed forward to the TP-link API. (Default: 192.168.1.255
+   */
+  broadcast?: string
+}
+
+/**
+ * Searches the network for TP-link devices.
+ *
+ * @param options - Optional configuration
+ */
+export async function findDevices (options?: IFindDevicesOptions): Promise<AnyDevice[]> {
+  // noinspection JSUnusedLocalSymbols
+  const status = options?.progress ?? function (total: number, current: number, deviceCount: number): void {}
+  const discoveryPeriod = options?.discoveryPeriod ?? 60
+  const broadcast = options?.broadcast ?? '192.168.1.255'
+
+  const client = new Client()
+
+  const results = <AnyDevice[]>[]
+
+  const startTime = new Date()
+  let currentTime = startTime
+  const endTime = (new Date(startTime.getTime() + discoveryPeriod * 1000))
+
+  client.startDiscovery({ broadcast: broadcast }).on('device-new', async (device) => {
+    results.push(device)
+  })
+
+  while (currentTime < endTime) {
+    status(discoveryPeriod * 1000, currentTime.getTime() - startTime.getTime(), results.length)
+
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    currentTime = new Date()
+  }
+
+  client.stopDiscovery()
+
+  return results
 }
