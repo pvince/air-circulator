@@ -74,14 +74,14 @@ async function checkAndSetThermostat (officeTemperature: number) {
   const tstat = await radiotherm.getThermostatState()
   msgLogger.info(`Current thermostat mode: ${ThermostatMode[tstat.tmode]}`)
   msgLogger.info(`Current thermostat state: ${ThermostatState[tstat.tstate]}`)
-  msgLogger.info(`Current cool setpoint:\t${tstat.t_cool}`)
+  msgLogger.info(`Current cool setpoint:\t${tstat.t_cool ?? '<disabled>'}`)
   msgLogger.info(`Current temperature:\t${tstat.temp}`)
   msgLogger.info(`Fan mode ${FanMode[tstat.fmode]}`)
   msgLogger.info(`Fan state ${FanState[tstat.fstate]}`)
 
   if (!(await ThermoStatFanData.checkForDeviation())) {
     if (tstat.tmode === ThermostatMode.Cool) {
-      const tempDiff = _.round(officeTemperature - tstat.t_cool, 2)
+      const tempDiff = _.round(officeTemperature - (tstat.t_cool ?? officeTemperature), 2)
       msgLogger.info(`Currently office is ${tempDiff} warmer than the setpoint`)
 
       // Check & set the whole house fan
