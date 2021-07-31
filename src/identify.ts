@@ -42,7 +42,7 @@ function progress (total: number, current: number, deviceCount: number) {
 async function runScript () {
   msgLogger.info('Starting discovery...')
 
-  const devices = await findDevices({ progress, discoveryPeriod: 10 })
+  const devices = await findDevices({ progress, discoveryPeriod: 30 })
   progressBar?.stop()
 
   msgLogger.info(`Found ${devices.length} devices.`)

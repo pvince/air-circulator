@@ -104,7 +104,7 @@ export async function findDevices (options?: IFindDevicesOptions): Promise<AnyDe
   let currentTime = startTime
   const endTime = (new Date(startTime.getTime() + discoveryPeriod * 1000))
 
-  client.startDiscovery({ broadcast: broadcast }).on('device-new', async (device) => {
+  client.startDiscovery({ broadcast: broadcast, discoveryInterval: 2500 }).on('device-new', async (device) => {
     results.push(device)
   })
 
