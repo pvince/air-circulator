@@ -1,6 +1,9 @@
 import { TransformableInfo } from 'logform'
+import fs from 'fs-extra'
+import { createLogger, format, transports } from 'winston'
+import _ from 'lodash'
 
-const { createLogger, format, transports } = require('winston')
+const SETTINGS_FILE = 'settings.json'
 
 /**
  * Pretty console error formatting for the winston logger
@@ -62,6 +65,134 @@ export const statLogger = createLogger({
  * @param err Error object
  */
 export function logError (message: string, err: Error) {
-  // msgLogger.error({ message: `${message} ${err.message}`, err: err, stack: err.stack })
-  console.error(`${err}\n${err.stack}`)
+  msgLogger.error({ message: `${message} ${err.message}`, err: err, stack: err.stack })
+  // console.error(`${err}\n${err.stack}`)
+}
+
+/**
+ * Acuparse specific settings
+ */
+export interface IAcuparseSettings {
+  /**
+   * Acuparse hostname
+   */
+  hostname: string,
+
+  /**
+   * Office Tower ID
+   */
+  officeTowerID: string,
+
+  /**
+   * Dining Tower ID
+   */
+  diningTowerID: string,
+
+  /**
+   * Bedroom Tower ID
+   */
+  bedroomTowerID: string
+}
+
+/**
+ * TPLink API settings
+ */
+export interface ITPLinkSettings {
+  /**
+   * Office fan name
+   */
+  officeFanName: string,
+
+  /**
+   * Office fan address. Don't bother settings this. If this is
+   * not valid, then we should use the office fan name.
+   */
+  officeFanAddress: string,
+
+  /**
+   * Office temperature threshold. At this point, turn the office device on.
+   */
+  officeTempThreshold: number
+}
+
+/**
+ * Radio thermostat settings
+ */
+export interface IRadioThermSettings {
+  /**
+   * Device hostname
+   */
+  hostname: string,
+
+  /**
+   * Temperature differential. If the difference between the dining room thermostat
+   * and the target acuparse tower is greater than this, turn on the thermostat house
+   * fan
+   */
+  temperatureDiff: number,
+}
+
+/**
+ * Settings interface
+ */
+export interface ISettings {
+  tplink: ITPLinkSettings,
+  acuparse: IAcuparseSettings
+  radioTherm: IRadioThermSettings
+}
+
+/**
+ * Lazy initialized cache of the settings.
+ */
+let settings = <ISettings|null> null
+
+/**
+ * Loads the settings from a file. If the settings file fails to load, this writes
+ * a default settings file & re-throws the error.
+ */
+async function _loadSettings (): Promise<ISettings> {
+  return fs.readJson(SETTINGS_FILE)
+    .catch((err) => {
+      logError('Failed to load settings. Saving defaults', err)
+      settings = {
+        tplink: {
+          officeFanAddress: '',
+          officeFanName: '',
+          officeTempThreshold: 77
+        },
+        acuparse: {
+          hostname: '',
+          officeTowerID: '',
+          diningTowerID: '',
+          bedroomTowerID: ''
+        },
+        radioTherm: {
+          hostname: '',
+          temperatureDiff: 6
+        }
+      }
+      return saveSettings()
+        .then(() => Promise.reject(err))
+    })
+}
+
+/**
+ * Saves the current set 'settings'
+ */
+export async function saveSettings () {
+  return fs.writeJson(SETTINGS_FILE, settings, { spaces: 2 })
+    .catch((err) => logError('Failed to save settings.', err))
+}
+
+/**
+ * Ensures settings are loaded & returns reference to the settings.
+ *
+ * If the settings fails to load, this will throw an exception.
+ */
+export async function getSettings (): Promise<ISettings> {
+  if (_.isEmpty(settings)) {
+    settings = await _loadSettings()
+    await saveSettings()
+  }
+  return settings ?? <ISettings>{}
 }

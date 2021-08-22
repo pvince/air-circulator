@@ -1,42 +1,11 @@
 import _ from 'lodash'
 import * as acuparse from './acuparse/api'
 import * as radiotherm from './radiothermostat/api'
-import { logError, msgLogger, statLogger } from './settings'
+import { logError, msgLogger, statLogger, getSettings, ISettings } from './settings'
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types'
 import columnify from 'columnify'
 import { SmartPlug, PlugState } from './tplink/api'
 import { ThermoStatFanData } from './radiothermostat/dataAccessors'
-
-// Setup the API hosts for the acuparse & radio thermostat
-acuparse.Settings.apiHost = 'http://192.168.1.126'
-radiotherm.Settings.apiHost = 'http://192.168.1.235'
-const officePlug = new SmartPlug('192.168.1.103')
-
-/**
- * Max temperature differential between the two specified locations. If the temperature differential is above this
- * we will turn on the whole house fan.
- */
-const MAX_TEMPERATURE_DIFF = 6
-
-/**
- * Temperature at which the small office fan will be toggled on // off
- */
-const OFFICE_TEMPERATURE_THRESHOLD = 77
-
-/**
- * Acurite tower ID for the office temperature sensor
- */
-const officeTower = '00015652'
-
-/**
- * Acurite tower ID for the dining room temperature sensor.
- */
-const diningTower = '00002056'
-
-/**
- * Acurite tower ID for the bedroom temperature sensor.
- */
-const bedroomTower = '00010242'
 
 /**
  * Sets the house fan mode.
@@ -51,25 +20,30 @@ async function setHouseFanMode (inFanMode: FanMode) {
 /**
  * Changes the office fan state, re-uses the RadioThermostat constants for fan state.
  *
+ * @param officePlug Office plug object
  * @param inFanState Fan state to set on the office fan.
  */
-async function setOfficeFanState (inFanState: PlugState) {
+async function setOfficeFanState (officePlug: SmartPlug, inFanState: PlugState) {
   statLogger.info(`Changing office fan mode to ${PlugState[inFanState]}`)
   await officePlug.setPlugState(inFanState)
 }
 
 /**
  * Determines the current operating fan state of the office fan.
+ *
+ * @param officePlug Office plug object
  */
-async function getOfficeFanState (): Promise<PlugState> {
+async function getOfficeFanState (officePlug: SmartPlug): Promise<PlugState> {
   return await officePlug.getState()
 }
 
 /**
  * Runs code that prints out the current thermostat state, and determines if the fan state should be changed.
+ *
+ * @param settings Script settings
  * @param officeTemperature Current office temperature
  */
-async function checkAndSetThermostat (officeTemperature: number) {
+async function checkAndSetThermostat (settings: ISettings, officeTemperature: number) {
   // Lookup the thermostat state.
   const tstat = await radiotherm.getThermostatState()
   msgLogger.info(`Current thermostat mode: ${ThermostatMode[tstat.tmode]}`)
@@ -85,7 +59,7 @@ async function checkAndSetThermostat (officeTemperature: number) {
       msgLogger.info(`Currently office is ${tempDiff} warmer than the setpoint`)
 
       // Check & set the whole house fan
-      if (tempDiff >= MAX_TEMPERATURE_DIFF) {
+      if (tempDiff >= settings.radioTherm.temperatureDiff) {
         if (tstat.fmode !== FanMode.On) {
           await setHouseFanMode(FanMode.On)
         } else {
@@ -104,19 +78,23 @@ async function checkAndSetThermostat (officeTemperature: number) {
 
 /**
  * Checks the current fan state in the office and determines if it should be turned on or off.
+ *
+ * @param settings Script settings
  * @param officeTemperature Current office temperature.
  */
-async function checkAndSetOfficeFan (officeTemperature: number) {
+async function checkAndSetOfficeFan (settings: ISettings, officeTemperature: number) {
+  const officePlug = new SmartPlug(settings.tplink.officeFanAddress)
+
   if (!(await officePlug.checkForDeviation())) {
-    const officeFanState = await getOfficeFanState()
-    if (officeTemperature >= OFFICE_TEMPERATURE_THRESHOLD) {
+    const officeFanState = await getOfficeFanState(officePlug)
+    if (officeTemperature >= settings.tplink.officeTempThreshold) {
       if (officeFanState === PlugState.Off) {
-        await setOfficeFanState(PlugState.On)
+        await setOfficeFanState(officePlug, PlugState.On)
       } else {
         msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${PlugState[officeFanState]}`)
       }
     } else if (officeFanState === PlugState.On) {
-      await setOfficeFanState(PlugState.Off)
+      await setOfficeFanState(officePlug, PlugState.Off)
     } else {
       msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${PlugState[officeFanState]}`)
     }
@@ -127,12 +105,17 @@ async function checkAndSetOfficeFan (officeTemperature: number) {
 
 /**
  * Runs the process of checking temperatures, and seeing if we should change the fan state.
+ *
+ * @param settings Script settings
  */
-async function runScript () {
+async function runScript (settings: ISettings) {
+  acuparse.Settings.apiHost = settings.acuparse.hostname
+  radiotherm.Settings.apiHost = settings.radioTherm.hostname
+
   // Print out some general temperature data from around the house
-  const office = await acuparse.getTower(officeTower)
-  const dining = await acuparse.getTower(diningTower)
-  const bedroom = await acuparse.getTower(bedroomTower)
+  const office = await acuparse.getTower(settings.acuparse.officeTowerID)
+  const dining = await acuparse.getTower(settings.acuparse.diningTowerID)
+  const bedroom = await acuparse.getTower(settings.acuparse.bedroomTowerID)
 
   const outputData = [office, dining, bedroom]
   msgLogger.info('\n' + columnify(outputData, {
@@ -148,13 +131,13 @@ async function runScript () {
 
   // Check to see what we should do with regards to the above info.
   try {
-    await checkAndSetThermostat(officeTemperature)
+    await checkAndSetThermostat(settings, officeTemperature)
   } catch (err) {
     logError('Failed to check or set thermostat state.', err)
   }
 
   try {
-    await checkAndSetOfficeFan(officeTemperature)
+    await checkAndSetOfficeFan(settings, officeTemperature)
   } catch (err) {
     logError('Failed to check or set office fan state.', err)
   }
@@ -162,7 +145,8 @@ async function runScript () {
 }
 
 // Kicks off the process & handles any errors.
-runScript()
+getSettings()
+  .then((settings) => runScript(settings))
   .catch((err) => {
     msgLogger.error(err)
   })

@@ -1,0 +1,17 @@
+{
+  "tplink": {
+    "officeFanAddress": "192.168.1.114",
+    "officeFanName": "Small Fan",
+    "officeTempThreshold": 77
+  },
+  "acuparse": {
+    "hostname": "http://192.168.1.126",
+    "officeTowerID": "00015652",
+    "diningTowerID": "00002056",
+    "bedroomTowerID": "00010242"
+  },
+  "radioTherm": {
+    "hostname": "http://192.168.1.235",
+    "temperatureDiff": 6
+  }
+}
