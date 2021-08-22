@@ -1,7 +1,7 @@
 import { Client } from 'tplink-smarthome-api'
 import { DataStoreAccessor } from '../datastore'
 import { AnyDevice } from 'tplink-smarthome-api/lib/client'
-import { logError, msgLogger } from '../settings'
+import { logError, msgLogger, statLogger } from '../settings'
 
 /**
  * Declares an enum that can be used to toggle the plug state.
@@ -136,7 +136,7 @@ export class SmartPlug extends DataStoreAccessor {
       ipAddress = thisDevice?.host ?? null
 
       if (ipAddress !== null) {
-        msgLogger.info(`Found ${this.name} at ${ipAddress}.`)
+        statLogger.info(`Found ${this.name} at ${ipAddress}.`)
       } else {
         msgLogger.error(`Failed to locate ${this.name} by name. Maybe it is offline?`)
       }
