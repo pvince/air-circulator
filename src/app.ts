@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import * as acuparse from './acuparse/api'
 import * as radiotherm from './radiothermostat/api'
-import { logError, msgLogger, statLogger, getSettings, ISettings } from './settings'
+import { logError, msgLogger, statLogger, getSettings, ISettings, saveSettings } from './settings'
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types'
 import columnify from 'columnify'
 import { SmartPlug, PlugState } from './tplink/api'
@@ -83,23 +83,37 @@ async function checkAndSetThermostat (settings: ISettings, officeTemperature: nu
  * @param officeTemperature Current office temperature.
  */
 async function checkAndSetOfficeFan (settings: ISettings, officeTemperature: number) {
-  const officePlug = new SmartPlug(settings.tplink.officeFanAddress)
+  const officePlug = new SmartPlug(settings.tplink.officeFanAddress, settings.tplink.officeFanName)
 
-  if (!(await officePlug.checkForDeviation())) {
-    const officeFanState = await getOfficeFanState(officePlug)
-    if (officeTemperature >= settings.tplink.officeTempThreshold) {
-      if (officeFanState === PlugState.Off) {
-        await setOfficeFanState(officePlug, PlugState.On)
+  const plugAlias = await officePlug.searchByName()
+
+  // Ensure we were able to find the plug...
+  if (plugAlias === null) {
+    msgLogger.error(`Failed to connect to ${settings.tplink.officeFanName} at ${settings.tplink.officeFanAddress}. Cannot check & set office fan state.`)
+  } else {
+    // Check to see if the plug is at a different IP address than we have saved in the settings...
+    if (officePlug.address !== settings.tplink.officeFanAddress) {
+      msgLogger.info(`Updating ${settings.tplink.officeFanName} IP address to ${officePlug.address}.`)
+      settings.tplink.officeFanAddress = officePlug.address
+    }
+
+    // Continue with checking & setting the fan state.
+    if (!(await officePlug.checkForDeviation())) {
+      const officeFanState = await getOfficeFanState(officePlug)
+      if (officeTemperature >= settings.tplink.officeTempThreshold) {
+        if (officeFanState === PlugState.Off) {
+          await setOfficeFanState(officePlug, PlugState.On)
+        } else {
+          msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${PlugState[officeFanState]}`)
+        }
+      } else if (officeFanState === PlugState.On) {
+        await setOfficeFanState(officePlug, PlugState.Off)
       } else {
         msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${PlugState[officeFanState]}`)
       }
-    } else if (officeFanState === PlugState.On) {
-      await setOfficeFanState(officePlug, PlugState.Off)
     } else {
-      msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${PlugState[officeFanState]}`)
+      msgLogger.info(`Office fan is currently overridden to ${PlugState[await officePlug.getState()]} for the next ${await officePlug.getRemainingDeviationMinutes()} minutes`)
     }
-  } else {
-    msgLogger.info(`Office fan is currently overridden to ${PlugState[await officePlug.getState()]} for the next ${await officePlug.getRemainingDeviationMinutes()} minutes`)
   }
 }
 
@@ -147,6 +161,7 @@ async function runScript (settings: ISettings) {
 // Kicks off the process & handles any errors.
 getSettings()
   .then((settings) => runScript(settings))
+  .then(() => saveSettings())
   .catch((err) => {
     msgLogger.error(err)
   })
