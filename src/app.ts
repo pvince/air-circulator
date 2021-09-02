@@ -6,6 +6,7 @@ import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiotherm
 import columnify from 'columnify'
 import { SmartPlug, PlugState } from './tplink/api'
 import { ThermoStatFanData } from './radiothermostat/dataAccessors'
+import { ITower } from './acuparse/types'
 
 /**
  * Sets the thermostat fan mode.
@@ -67,7 +68,7 @@ async function checkAndSetThermostat (settings: ISettings, officeTemperature: nu
   }
 }
 
-async function checkAndSetFanState (fanSetting: ITPLinkFanSetting, currentTemperature: number) {
+async function checkAndSetFanState (fanSetting: ITPLinkFanSetting) {
   const fanPlug = new SmartPlug(fanSetting.address, fanSetting.name)
 
   const plugAlias = await fanPlug.searchByName()
@@ -85,7 +86,18 @@ async function checkAndSetFanState (fanSetting: ITPLinkFanSetting, currentTemper
     // Continue with checking & setting the fan state.
     if (!(await fanPlug.checkForDeviation())) {
       const fanState = await fanPlug.getState()
-      if (currentTemperature >= fanSetting.tempThreshold) {
+
+      // We need to find the temperatures we are working with.
+      const insideTower = await acuparse.getTower(fanSetting.insideSourceID)
+
+      let outsideTower = <null|ITower>null
+      if (fanSetting.outsideSourceID.length > 0) {
+        outsideTower = await acuparse.getTower(fanSetting.outsideSourceID)
+      }
+
+      const outsideTempF = outsideTower?.tempF ?? 999999
+
+      if (insideTower.tempF >= fanSetting.tempThreshold && insideTower.tempF > outsideTempF) {
         if (fanState === PlugState.Off) {
           await setPlugState(fanPlug, PlugState.On)
         } else {
@@ -103,16 +115,6 @@ async function checkAndSetFanState (fanSetting: ITPLinkFanSetting, currentTemper
 }
 
 /**
- * Checks the current fan state in the office and determines if it should be turned on or off.
- *
- * @param settings Script settings
- * @param officeTemperature Current office temperature.
- */
-async function checkAndSetOfficeFan (settings: ISettings, officeTemperature: number) {
-  await checkAndSetFanState(settings.tplink.officeFan, officeTemperature)
-}
-
-/**
  * Runs the process of checking temperatures, and seeing if we should change the fan state.
  *
  * @param settings Script settings
@@ -125,8 +127,9 @@ async function runScript (settings: ISettings) {
   const office = await acuparse.getTower(settings.acuparse.officeTowerID)
   const dining = await acuparse.getTower(settings.acuparse.diningTowerID)
   const bedroom = await acuparse.getTower(settings.acuparse.bedroomTowerID)
+  const outside = await acuparse.getTower(settings.tplink.houseFan.outsideSourceID)
 
-  const outputData = [office, dining, bedroom]
+  const outputData = [office, dining, bedroom, outside]
   msgLogger.info('\n' + columnify(outputData, {
     columns: ['name', 'tempF', 'lastUpdated'],
     config: {
@@ -146,14 +149,14 @@ async function runScript (settings: ISettings) {
   }
 
   try {
-    await checkAndSetOfficeFan(settings, officeTemperature)
+    await checkAndSetFanState(settings.tplink.officeFan)
   } catch (err) {
     logError('Failed to check or set office fan state.', err)
   }
 
   try {
-    await checkAndSetFanState(settings.tplink.houseFan, bedroom.tempF)
-    await checkAndSetFanState(settings.tplink.boxFan, bedroom.tempF)
+    await checkAndSetFanState(settings.tplink.houseFan)
+    await checkAndSetFanState(settings.tplink.boxFan)
   } catch (err) {
     logError('Failed to check or set house fan state.', err)
   }

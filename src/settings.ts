@@ -95,8 +95,32 @@ export interface IAcuparseSettings {
 }
 
 export interface ITPLinkFanSetting {
+  /**
+   * Name of the device plug. Used to lookup the device if the IP address changes
+   */
   name: string,
+
+  /**
+   * IP address of the device. Do not set this directly, allow the program to manage it.
+   */
   address: string,
+
+  /**
+   * Acuparse ID that will be used as the 'inside' temperature.
+   */
+  insideSourceID: string,
+
+  /**
+   * Acuparse ID that will be used ast the 'outside' temperature. If the inside temperature
+   * is lower than the outside temperature, the device will stay off.
+   *
+   * If this value is left blank, then this functionality is disabled.
+   */
+  outsideSourceID: string,
+
+  /**
+   * If the 'inside source' temperature is above this, the device will turn on.
+   */
   tempThreshold: number
 }
 
@@ -153,16 +177,22 @@ async function _loadSettings (): Promise<ISettings> {
           officeFan: {
             address: '',
             name: '',
+            insideSourceID: '',
+            outsideSourceID: '',
             tempThreshold: 77
           },
           houseFan: {
             address: '',
             name: '',
+            insideSourceID: '',
+            outsideSourceID: '',
             tempThreshold: 60
           },
           boxFan: {
             address: '',
             name: '',
+            insideSourceID: '',
+            outsideSourceID: '',
             tempThreshold: 60
           }
         },
