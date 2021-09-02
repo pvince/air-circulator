@@ -1,18 +1,18 @@
 import _ from 'lodash'
 import * as acuparse from './acuparse/api'
 import * as radiotherm from './radiothermostat/api'
-import { logError, msgLogger, statLogger, getSettings, ISettings, saveSettings } from './settings'
+import { logError, msgLogger, statLogger, getSettings, ISettings, saveSettings, ITPLinkFanSetting } from './settings'
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types'
 import columnify from 'columnify'
 import { SmartPlug, PlugState } from './tplink/api'
 import { ThermoStatFanData } from './radiothermostat/dataAccessors'
 
 /**
- * Sets the house fan mode.
+ * Sets the thermostat fan mode.
  *
  * @param inFanMode New fan mode
  */
-async function setHouseFanMode (inFanMode: FanMode) {
+async function setThermostatFanMode (inFanMode: FanMode) {
   statLogger.info(`Changing fan mode to ${FanMode[inFanMode]}`)
   await radiotherm.setFanMode(inFanMode)
 }
@@ -20,21 +20,12 @@ async function setHouseFanMode (inFanMode: FanMode) {
 /**
  * Changes the office fan state, re-uses the RadioThermostat constants for fan state.
  *
- * @param officePlug Office plug object
+ * @param plug Office plug object
  * @param inFanState Fan state to set on the office fan.
  */
-async function setOfficeFanState (officePlug: SmartPlug, inFanState: PlugState) {
-  statLogger.info(`Changing office fan mode to ${PlugState[inFanState]}`)
-  await officePlug.setPlugState(inFanState)
-}
-
-/**
- * Determines the current operating fan state of the office fan.
- *
- * @param officePlug Office plug object
- */
-async function getOfficeFanState (officePlug: SmartPlug): Promise<PlugState> {
-  return await officePlug.getState()
+async function setPlugState (plug: SmartPlug, inFanState: PlugState) {
+  statLogger.info(`Changing ${plug.name} mode to ${PlugState[inFanState]}`)
+  await plug.setPlugState(inFanState)
 }
 
 /**
@@ -61,18 +52,53 @@ async function checkAndSetThermostat (settings: ISettings, officeTemperature: nu
       // Check & set the whole house fan
       if (tempDiff >= settings.radioTherm.temperatureDiff) {
         if (tstat.fmode !== FanMode.On) {
-          await setHouseFanMode(FanMode.On)
+          await setThermostatFanMode(FanMode.On)
         } else {
           msgLogger.info(`No changes needed to fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
         }
       } else if (tstat.fmode !== FanMode.Circulate) {
-        await setHouseFanMode(FanMode.Circulate)
+        await setThermostatFanMode(FanMode.Circulate)
       } else {
         msgLogger.info(`No changes needed to house fan state. Leaving fan set to ${FanMode[tstat.fmode]}`)
       }
     }
   } else {
     msgLogger.info(`Fan mode is currently overridden to ${FanMode[tstat.fmode]} for the next ${await ThermoStatFanData.getRemainingDeviationMinutes()} minutes.`)
+  }
+}
+
+async function checkAndSetFanState (fanSetting: ITPLinkFanSetting, currentTemperature: number) {
+  const fanPlug = new SmartPlug(fanSetting.address, fanSetting.name)
+
+  const plugAlias = await fanPlug.searchByName()
+
+  // Ensure we were able to find the plug...
+  if (plugAlias === null) {
+    msgLogger.error(`Failed to connect to ${fanSetting.name} at ${fanSetting.address}. Cannot check & set fan state.`)
+  } else {
+    // Check to see if the plug is at a different IP address than we have saved in the settings...
+    if (fanPlug.address !== fanSetting.address) {
+      msgLogger.info(`Updating ${fanSetting.name} IP address to ${fanPlug.address}.`)
+      fanSetting.address = fanPlug.address
+    }
+
+    // Continue with checking & setting the fan state.
+    if (!(await fanPlug.checkForDeviation())) {
+      const fanState = await fanPlug.getState()
+      if (currentTemperature >= fanSetting.tempThreshold) {
+        if (fanState === PlugState.Off) {
+          await setPlugState(fanPlug, PlugState.On)
+        } else {
+          msgLogger.info(`No changes needed to ${fanSetting.name} state. Leaving fan set to ${PlugState[fanState]}`)
+        }
+      } else if (fanState === PlugState.On) {
+        await setPlugState(fanPlug, PlugState.Off)
+      } else {
+        msgLogger.info(`No changes needed to ${fanSetting.name} state. Leaving fan set to ${PlugState[fanState]}`)
+      }
+    } else {
+      msgLogger.info(`${fanSetting.name} fan is currently overridden to ${PlugState[await fanPlug.getState()]} for the next ${await fanPlug.getRemainingDeviationMinutes()} minutes`)
+    }
   }
 }
 
@@ -83,38 +109,7 @@ async function checkAndSetThermostat (settings: ISettings, officeTemperature: nu
  * @param officeTemperature Current office temperature.
  */
 async function checkAndSetOfficeFan (settings: ISettings, officeTemperature: number) {
-  const officePlug = new SmartPlug(settings.tplink.officeFanAddress, settings.tplink.officeFanName)
-
-  const plugAlias = await officePlug.searchByName()
-
-  // Ensure we were able to find the plug...
-  if (plugAlias === null) {
-    msgLogger.error(`Failed to connect to ${settings.tplink.officeFanName} at ${settings.tplink.officeFanAddress}. Cannot check & set office fan state.`)
-  } else {
-    // Check to see if the plug is at a different IP address than we have saved in the settings...
-    if (officePlug.address !== settings.tplink.officeFanAddress) {
-      msgLogger.info(`Updating ${settings.tplink.officeFanName} IP address to ${officePlug.address}.`)
-      settings.tplink.officeFanAddress = officePlug.address
-    }
-
-    // Continue with checking & setting the fan state.
-    if (!(await officePlug.checkForDeviation())) {
-      const officeFanState = await getOfficeFanState(officePlug)
-      if (officeTemperature >= settings.tplink.officeTempThreshold) {
-        if (officeFanState === PlugState.Off) {
-          await setOfficeFanState(officePlug, PlugState.On)
-        } else {
-          msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${PlugState[officeFanState]}`)
-        }
-      } else if (officeFanState === PlugState.On) {
-        await setOfficeFanState(officePlug, PlugState.Off)
-      } else {
-        msgLogger.info(`No changes needed to office fan state. Leaving fan set to ${PlugState[officeFanState]}`)
-      }
-    } else {
-      msgLogger.info(`Office fan is currently overridden to ${PlugState[await officePlug.getState()]} for the next ${await officePlug.getRemainingDeviationMinutes()} minutes`)
-    }
-  }
+  await checkAndSetFanState(settings.tplink.officeFan, officeTemperature)
 }
 
 /**
@@ -154,6 +149,13 @@ async function runScript (settings: ISettings) {
     await checkAndSetOfficeFan(settings, officeTemperature)
   } catch (err) {
     logError('Failed to check or set office fan state.', err)
+  }
+
+  try {
+    await checkAndSetFanState(settings.tplink.houseFan, bedroom.tempF)
+    await checkAndSetFanState(settings.tplink.boxFan, bedroom.tempF)
+  } catch (err) {
+    logError('Failed to check or set house fan state.', err)
   }
   // Check & set the office fan.
 }

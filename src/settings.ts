@@ -94,25 +94,19 @@ export interface IAcuparseSettings {
   bedroomTowerID: string
 }
 
+export interface ITPLinkFanSetting {
+  name: string,
+  address: string,
+  tempThreshold: number
+}
+
 /**
  * TPLink API settings
  */
 export interface ITPLinkSettings {
-  /**
-   * Office fan name
-   */
-  officeFanName: string,
-
-  /**
-   * Office fan address. Don't bother settings this. If this is
-   * not valid, then we should use the office fan name.
-   */
-  officeFanAddress: string,
-
-  /**
-   * Office temperature threshold. At this point, turn the office device on.
-   */
-  officeTempThreshold: number
+  officeFan: ITPLinkFanSetting,
+  houseFan: ITPLinkFanSetting,
+  boxFan: ITPLinkFanSetting
 }
 
 /**
@@ -156,9 +150,21 @@ async function _loadSettings (): Promise<ISettings> {
       logError('Failed to load settings. Saving defaults', err)
       settings = {
         tplink: {
-          officeFanAddress: '',
-          officeFanName: '',
-          officeTempThreshold: 77
+          officeFan: {
+            address: '',
+            name: '',
+            tempThreshold: 77
+          },
+          houseFan: {
+            address: '',
+            name: '',
+            tempThreshold: 60
+          },
+          boxFan: {
+            address: '',
+            name: '',
+            tempThreshold: 60
+          }
         },
         acuparse: {
           hostname: '',

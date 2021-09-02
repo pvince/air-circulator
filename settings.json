@@ -1,8 +1,20 @@
 {
   "tplink": {
-    "officeFanAddress": "192.168.1.114",
-    "officeFanName": "Small Fan",
-    "officeTempThreshold": 77
+    "officeFan": {
+      "address": "192.168.1.134",
+      "name": "Small Fan",
+      "tempThreshold": 77
+    },
+    "houseFan": {
+      "address": "192.168.1.42",
+      "name": "House Fan",
+      "tempThreshold": 60
+    },
+    "boxFan": {
+      "address": "192.168.1.196",
+      "name": "Box Fan",
+      "tempThreshold": 60
+    }
   },
   "acuparse": {
     "hostname": "http://192.168.1.126",
