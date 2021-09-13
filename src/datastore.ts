@@ -29,7 +29,7 @@ const DATASTORE_FILENAME = 'air-circulator-data.json'
  * Stores the cached data storage object into a file
  */
 export async function saveData () {
-  await fs.writeJson(DATASTORE_FILENAME, dataStore)
+  await fs.writeJson(DATASTORE_FILENAME, dataStore, { spaces: 2 })
 }
 
 /**
@@ -93,7 +93,6 @@ const DEVIATION_LIMIT = 60
  * Abstract class that can be implemented by specific data providers to store data into the cached file
  */
 export abstract class DataStoreAccessor {
-
   /**
    * Name used to store this data into cache
    */

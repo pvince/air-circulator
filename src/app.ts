@@ -95,7 +95,7 @@ async function checkAndSetFanState (fanSetting: ITPLinkFanSetting) {
         outsideTower = await acuparse.getTower(fanSetting.outsideSourceID)
       }
 
-      const outsideTempF = outsideTower?.tempF ?? 999999
+      const outsideTempF = outsideTower?.tempF ?? 0
 
       if (insideTower.tempF >= fanSetting.tempThreshold && insideTower.tempF > outsideTempF) {
         if (fanState === PlugState.Off) {
