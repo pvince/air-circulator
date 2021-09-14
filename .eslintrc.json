@@ -16,6 +16,8 @@
     ],
     "rules": {
         "semi": "off",
+        "require-jsdoc": "error",
+        "valid-jsdoc": ["error", {"requireReturn": false, "requireParamType": false, "requireReturnType": false }],
         "@typescript-eslint/semi": ["error", "always"],
         "@typescript-eslint/consistent-type-assertions": ["error", { "assertionStyle": "as" }],
         "@typescript-eslint/member-delimiter-style": "error"

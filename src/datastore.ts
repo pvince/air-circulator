@@ -105,7 +105,9 @@ export abstract class DataStoreAccessor {
 
   /**
    * If there is a deviation time stored, this determines how long ago it happened in minutes.
+   *
    * @param devData Deviation data to check
+   * @returns - Returns how long ago in minutes the deviation was noticed.
    * @private
    */
   _getDeviationDifference (devData: IDeviationData | null): number {

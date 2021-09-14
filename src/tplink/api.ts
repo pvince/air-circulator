@@ -162,7 +162,8 @@ export class SmartPlug extends DataStoreAccessor {
 
   /**
    * Sets the plugs 'state' (turns it off or on)
-   * @param inPlugState
+   *
+   * @param inPlugState - Plug state to set.
    */
   async setPlugState (inPlugState: PlugState) {
     const plugDevice = await this._getDevice();

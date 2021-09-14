@@ -18,10 +18,22 @@ export const Settings:ISettings = {
   apiHost: ''
 };
 
+/**
+ * Runs a get request against the acuparse API
+ *
+ * @param apiMethod - API method to run
+ * @param queryParams - Query level parameters
+ */
 async function _runGetRequest (apiMethod: string, queryParams?: string | Record<string, string | number | boolean | null | undefined> | URLSearchParams): Promise<any> {
   return got(`${Settings.apiHost}/${API_SUB_PATH}/${apiMethod}`, { searchParams: queryParams }).json();
 }
 
+/**
+ * Returns Tower data.
+ *
+ * @param towerID - TowerID string
+ * @returns - Returns tower data
+ */
 export async function getTower (towerID: string): Promise<ITower> {
   let towerResult:ITower;
 
@@ -37,6 +49,11 @@ export async function getTower (towerID: string): Promise<ITower> {
   return towerResult;
 }
 
+/**
+ * Looks up information about the 'Main' tower. The 'Main' tower is typically a 5-in-1 device.
+ *
+ * @returns - Returns 'Main' tower information
+ */
 export async function getMain (): Promise<IMain> {
   const mainResult:IMainResult = await _runGetRequest('dashboard', 'main');
 

@@ -68,6 +68,11 @@ async function checkAndSetThermostat (settings: ISettings, officeTemperature: nu
   }
 }
 
+/**
+ * Checks the conditions that are relevant to the fans state, and toggles the state accordingly
+ *
+ * @param fanSetting - Settings that tell us about the fan
+ */
 async function checkAndSetFanState (fanSetting: ITPLinkFanSetting) {
   const fanPlug = new SmartPlug(fanSetting.address, fanSetting.name);
 
