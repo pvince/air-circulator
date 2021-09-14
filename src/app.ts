@@ -1,10 +1,10 @@
 import _ from 'lodash';
 import * as acuparse from './acuparse/api';
 import * as radiotherm from './radiothermostat/api';
-import { logError, msgLogger, statLogger, getSettings, ISettings, saveSettings, ITPLinkFanSetting } from './settings';
+import { getSettings, ISettings, ITPLinkFanSetting, logError, msgLogger, saveSettings, statLogger } from './settings';
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types';
 import columnify from 'columnify';
-import { SmartPlug, PlugState } from './tplink/api';
+import { PlugState, SmartPlug } from './tplink/api';
 import { ThermoStatFanData } from './radiothermostat/dataAccessors';
 import { ITower } from './acuparse/types';
 
@@ -153,17 +153,29 @@ async function runScript (settings: ISettings) {
     logError('Failed to check or set thermostat state.', err);
   }
 
+  let bIsThermostatActive = true;
+  try {
+    const tstat = await radiotherm.getThermostatState();
+    bIsThermostatActive = tstat.tmode !== ThermostatMode.Off;
+  } catch (err: unknown) {
+    logError('Failed to lookup thermostat state.', err);
+  }
+
   try {
     await checkAndSetFanState(settings.tplink.officeFan);
   } catch (err) {
     logError('Failed to check or set office fan state.', err);
   }
 
-  try {
-    await checkAndSetFanState(settings.tplink.houseFan);
-    await checkAndSetFanState(settings.tplink.boxFan);
-  } catch (err: unknown) {
-    logError('Failed to check or set house fan state.', err);
+  if (!bIsThermostatActive) {
+    try {
+      await checkAndSetFanState(settings.tplink.houseFan);
+      await checkAndSetFanState(settings.tplink.boxFan);
+    } catch (err: unknown) {
+      logError('Failed to check or set house fan state.', err);
+    }
+  } else {
+    msgLogger.info('Thermostat is controlling temperature. Skipping setting house & box fan.');
   }
   // Check & set the office fan.
 }
