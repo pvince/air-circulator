@@ -33,6 +33,7 @@
     "fs-extra": "^10.0.0",
     "got": "^11.8.2",
     "lodash": "^4.17.21",
+    "logform": "^2.2.0",
     "winston": "^3.3.3"
   },
   "repository": {

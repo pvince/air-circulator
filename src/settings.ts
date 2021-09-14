@@ -64,9 +64,15 @@ export const statLogger = createLogger({
  * @param message Helpful message describing the error
  * @param err Error object
  */
-export function logError (message: string, err: Error) {
-  msgLogger.error({ message: `${message} ${err.message}`, err: err, stack: err.stack })
-  // console.error(`${err}\n${err.stack}`)
+export function logError (message: string, err: unknown) {
+  const logObject: any = { message }
+  if (err instanceof Error) {
+    logObject.message += ` ${err.message}`
+    logObject.err = err
+    logObject.stack = err.stack
+  }
+
+  msgLogger.error(logObject)
 }
 
 /**
