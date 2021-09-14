@@ -4,9 +4,9 @@ import columnify from 'columnify';
 import cliProgress from 'cli-progress';
 
 interface IDeviceSummary {
-  ipaddress: string,
-  alias: string,
-  model: string
+  ipaddress: string;
+  alias: string;
+  model: string;
 }
 
 let initializedProgress = false;

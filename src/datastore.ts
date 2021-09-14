@@ -4,15 +4,15 @@ import _ from 'lodash';
  * Data used to detect deviation from a set value.
  */
 export interface IDeviationData {
-  expectedData: any,
-  deviationDate: Date | null
+  expectedData: any;
+  deviationDate: Date | null;
 }
 
 /**
  * Data storage object definition
  */
 export interface IDataStore {
-  [index: string]: IDeviationData | null
+  [index: string]: IDeviationData | null;
 }
 
 /**

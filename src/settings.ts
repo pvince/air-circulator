@@ -76,39 +76,39 @@ export interface IAcuparseSettings {
   /**
    * Acuparse hostname
    */
-  hostname: string,
+  hostname: string;
 
   /**
    * Office Tower ID
    */
-  officeTowerID: string,
+  officeTowerID: string;
 
   /**
    * Dining Tower ID
    */
-  diningTowerID: string,
+  diningTowerID: string;
 
   /**
    * Bedroom Tower ID
    */
-  bedroomTowerID: string
+  bedroomTowerID: string;
 }
 
 export interface ITPLinkFanSetting {
   /**
    * Name of the device plug. Used to lookup the device if the IP address changes
    */
-  name: string,
+  name: string;
 
   /**
    * IP address of the device. Do not set this directly, allow the program to manage it.
    */
-  address: string,
+  address: string;
 
   /**
    * Acuparse ID that will be used as the 'inside' temperature.
    */
-  insideSourceID: string,
+  insideSourceID: string;
 
   /**
    * Acuparse ID that will be used ast the 'outside' temperature. If the inside temperature
@@ -116,21 +116,21 @@ export interface ITPLinkFanSetting {
    *
    * If this value is left blank, then this functionality is disabled.
    */
-  outsideSourceID: string,
+  outsideSourceID: string;
 
   /**
    * If the 'inside source' temperature is above this, the device will turn on.
    */
-  tempThreshold: number
+  tempThreshold: number;
 }
 
 /**
  * TPLink API settings
  */
 export interface ITPLinkSettings {
-  officeFan: ITPLinkFanSetting,
-  houseFan: ITPLinkFanSetting,
-  boxFan: ITPLinkFanSetting
+  officeFan: ITPLinkFanSetting;
+  houseFan: ITPLinkFanSetting;
+  boxFan: ITPLinkFanSetting;
 }
 
 /**
@@ -140,23 +140,23 @@ export interface IRadioThermSettings {
   /**
    * Device hostname
    */
-  hostname: string,
+  hostname: string;
 
   /**
    * Temperature differential. If the difference between the dining room thermostat
    * and the target acuparse tower is greater than this, turn on the thermostat house
    * fan
    */
-  temperatureDiff: number,
+  temperatureDiff: number;
 }
 
 /**
  * Settings interface
  */
 export interface ISettings {
-  tplink: ITPLinkSettings,
-  acuparse: IAcuparseSettings
-  radioTherm: IRadioThermSettings
+  tplink: ITPLinkSettings;
+  acuparse: IAcuparseSettings;
+  radioTherm: IRadioThermSettings;
 }
 
 const DEFAULT_SETTINGS: ISettings = {

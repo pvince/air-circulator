@@ -17,6 +17,7 @@
     "rules": {
         "semi": "off",
         "@typescript-eslint/semi": ["error", "always"],
-        "@typescript-eslint/consistent-type-assertions": ["error", { "assertionStyle": "as" }]
+        "@typescript-eslint/consistent-type-assertions": ["error", { "assertionStyle": "as" }],
+        "@typescript-eslint/member-delimiter-style": "error"
     }
 }

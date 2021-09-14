@@ -9,7 +9,7 @@ export interface ISettings {
     /**
      * API Host address
      */
-    apiHost: string,
+    apiHost: string;
 }
 
 const API_SUB_PATH = '/api/v1/json';

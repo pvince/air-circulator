@@ -21,7 +21,8 @@ export interface IFindDevicesOptions {
   /**
    * How long should we search (in seconds) for devices? (Default: 60 seconds)
    */
-  discoveryPeriod?: number,
+  discoveryPeriod?: number;
+
   /**
    * Callback that delivers progress updates. (Default: no-op)
    *
@@ -29,11 +30,12 @@ export interface IFindDevicesOptions {
    * @param current Current elapsed time (milliseconds)
    * @param deviceCount How many devices have been found so far?
    */
-  progress?: (total: number, current: number, deviceCount: number) => void,
+  progress?: (total: number, current: number, deviceCount: number) => void;
+
   /**
    * Network mask passed forward to the TP-link API. (Default: 192.168.1.255
    */
-  broadcast?: string
+  broadcast?: string;
 }
 
 /**

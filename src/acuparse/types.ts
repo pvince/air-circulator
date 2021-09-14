@@ -1,32 +1,32 @@
 export interface ITemperatureData {
-    tempF: number,
-    relH: string,
-    lastUpdated: string
+    tempF: number;
+    relH: string;
+    lastUpdated: string;
 }
 
 export interface ITower extends ITemperatureData{
-    name: string
+    name: string;
 }
 
 export interface ITowerList {
-    [key: string]: ITower
+    [key: string]: ITower;
 }
 
 export interface ITowerListResult {
-    towers: ITowerList
+    towers: ITowerList;
 }
 
 export interface IMain extends ITower {
-    rainIn: number,
+    rainIn: number;
     // eslint-disable-next-line camelcase
-    rainTotalIN_today: number,
-    windSpeedMPH: number,
-    windDEG: number,
-    windDIR: string
+    rainTotalIN_today: number;
+    windSpeedMPH: number;
+    windDEG: number;
+    windDIR: string;
 }
 
 export interface IMainResult {
-    main: IMain
+    main: IMain;
 }
 
 export const MAIN_TOWER_ID = 'main';

@@ -7,7 +7,7 @@ export interface ISettings {
     /**
      * API Host address
      */
-    apiHost: string,
+    apiHost: string;
 }
 
 export const Settings:ISettings = {
