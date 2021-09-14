@@ -155,10 +155,10 @@ async function runScript (settings: ISettings) {
   }
 
   try {
-    await checkAndSetFanState(settings.tplink.houseFan)
-    await checkAndSetFanState(settings.tplink.boxFan)
+    await checkAndSetFanState(settings.tplink.houseFan);
+    await checkAndSetFanState(settings.tplink.boxFan);
   } catch (err: unknown) {
-    logError('Failed to check or set house fan state.', err)
+    logError('Failed to check or set house fan state.', err);
   }
   // Check & set the office fan.
 }

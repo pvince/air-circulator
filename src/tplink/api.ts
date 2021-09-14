@@ -1,7 +1,7 @@
-import { Client } from 'tplink-smarthome-api'
-import { DataStoreAccessor } from '../datastore'
-import { AnyDevice } from 'tplink-smarthome-api/lib/client'
-import { logError, msgLogger, statLogger } from '../settings'
+import { Client } from 'tplink-smarthome-api';
+import { DataStoreAccessor } from '../datastore';
+import { AnyDevice } from 'tplink-smarthome-api/lib/client';
+import { logError, msgLogger, statLogger } from '../settings';
 
 /**
  * Declares an enum that can be used to toggle the plug state.
@@ -21,7 +21,8 @@ export interface IFindDevicesOptions {
   /**
    * How long should we search (in seconds) for devices? (Default: 60 seconds)
    */
-  discoveryPeriod?: number,
+  discoveryPeriod?: number;
+
   /**
    * Callback that delivers progress updates. (Default: no-op)
    *
@@ -29,11 +30,12 @@ export interface IFindDevicesOptions {
    * @param current Current elapsed time (milliseconds)
    * @param deviceCount How many devices have been found so far?
    */
-  progress?: (total: number, current: number, deviceCount: number) => void,
+  progress?: (total: number, current: number, deviceCount: number) => void;
+
   /**
    * Network mask passed forward to the TP-link API. (Default: 192.168.1.255
    */
-  broadcast?: string
+  broadcast?: string;
 }
 
 /**
@@ -43,33 +45,33 @@ export interface IFindDevicesOptions {
  */
 export async function findDevices (options?: IFindDevicesOptions): Promise<AnyDevice[]> {
   // noinspection JSUnusedLocalSymbols
-  const status = options?.progress ?? function (total: number, current: number, deviceCount: number): void {}
-  const discoveryPeriod = options?.discoveryPeriod ?? 60
-  const broadcast = options?.broadcast ?? '192.168.1.255'
+  const status = options?.progress ?? function (total: number, current: number, deviceCount: number): void {};
+  const discoveryPeriod = options?.discoveryPeriod ?? 60;
+  const broadcast = options?.broadcast ?? '192.168.1.255';
 
-  const client = new Client()
+  const client = new Client();
 
-  const results = <AnyDevice[]>[]
+  const results: AnyDevice[] = [];
 
-  const startTime = new Date()
-  let currentTime = startTime
-  const endTime = (new Date(startTime.getTime() + discoveryPeriod * 1000))
+  const startTime = new Date();
+  let currentTime = startTime;
+  const endTime = (new Date(startTime.getTime() + discoveryPeriod * 1000));
 
   client.startDiscovery({ broadcast: broadcast, discoveryInterval: 2500 }).on('device-new', async (device) => {
-    results.push(device)
-  })
+    results.push(device);
+  });
 
   while (currentTime < endTime) {
-    status(discoveryPeriod * 1000, currentTime.getTime() - startTime.getTime(), results.length)
+    status(discoveryPeriod * 1000, currentTime.getTime() - startTime.getTime(), results.length);
 
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-    currentTime = new Date()
+    currentTime = new Date();
   }
 
-  client.stopDiscovery()
+  client.stopDiscovery();
 
-  return results
+  return results;
 }
 
 /**
@@ -79,17 +81,17 @@ export class SmartPlug extends DataStoreAccessor {
   /**
    * IP Address for the plug
    */
-  address: string
+  address: string;
 
   /**
    * Device name. If we fail to find the device at the specified address, we can search for it with this name.
    */
-  name: string
+  name: string;
 
   /**
    * TP-Link API object
    */
-  private plugClient: Client
+  private plugClient: Client;
   /**
    * Constructor
    *
@@ -97,21 +99,21 @@ export class SmartPlug extends DataStoreAccessor {
    * @param inName - Name for the plug to control
    */
   constructor (inAddress: string, inName: string) {
-    super()
-    this.address = inAddress
-    this.name = inName
-    this.plugClient = new Client()
+    super();
+    this.address = inAddress;
+    this.name = inName;
+    this.plugClient = new Client();
   }
 
   /**
    * Retrieves a TP-Link device
    */
   private async _getDevice (): Promise<AnyDevice> {
-    return this.plugClient.getDevice({ host: this.address })
+    return this.plugClient.getDevice({ host: this.address });
   }
 
   dataName (): string {
-    return this.name
+    return this.name;
   }
 
   /**
@@ -119,53 +121,54 @@ export class SmartPlug extends DataStoreAccessor {
    * is located via its name, the IP address for this plug is automatically updated.
    */
   async searchByName (): Promise<string|null> {
-    let ipAddress
+    let ipAddress;
     try {
       // Do a basic device lookup.
-      await this._getDevice()
+      await this._getDevice();
 
       // If we didn't encounter an error, we found the device by its IP address.
-      ipAddress = this.address
+      ipAddress = this.address;
     } catch (err) {
       // If we had an error, then the IP address is wrong, or the device is offline.
-      logError(`Failed to find a ${this.name} with IP address ${this.address}. Attempting to lookup device by name.`, err)
+      logError(`Failed to find a ${this.name} with IP address ${this.address}. Attempting to lookup device by name.`, err);
 
-      const devices = await findDevices({ discoveryPeriod: 1 })
+      const devices = await findDevices({ discoveryPeriod: 1 });
 
-      const thisDevice = devices.find((device) => device.alias === this.name)
-      ipAddress = thisDevice?.host ?? null
+      const thisDevice = devices.find((device) => device.alias === this.name);
+      ipAddress = thisDevice?.host ?? null;
 
       if (ipAddress !== null) {
-        statLogger.info(`Found ${this.name} at ${ipAddress}.`)
+        statLogger.info(`Found ${this.name} at ${ipAddress}.`);
       } else {
-        msgLogger.error(`Failed to locate ${this.name} by name. Maybe it is offline?`)
+        msgLogger.error(`Failed to locate ${this.name} by name. Maybe it is offline?`);
       }
     }
 
     // Ensure the IP address is up to date if we found the device
-    this.address = ipAddress ?? this.address
+    this.address = ipAddress ?? this.address;
 
     // Return the IP address if we have a valid IP address, return null if we didn't find the device.
-    return ipAddress
+    return ipAddress;
   }
 
   /**
    * Returns the plugs 'state' (Is it on, or is it off)
    */
   async getState (): Promise<PlugState> {
-    const plugDevice = await this._getDevice()
+    const plugDevice = await this._getDevice();
 
-    return (await plugDevice.getPowerState()) ? PlugState.On : PlugState.Off
+    return (await plugDevice.getPowerState()) ? PlugState.On : PlugState.Off;
   }
 
   /**
    * Sets the plugs 'state' (turns it off or on)
-   * @param inPlugState
+   *
+   * @param inPlugState - Plug state to set.
    */
   async setPlugState (inPlugState: PlugState) {
-    const plugDevice = await this._getDevice()
+    const plugDevice = await this._getDevice();
 
-    await plugDevice.setPowerState(inPlugState === PlugState.On)
-    await this.storeState()
+    await plugDevice.setPowerState(inPlugState === PlugState.On);
+    await this.storeState();
   }
 }
