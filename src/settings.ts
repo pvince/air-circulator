@@ -1,9 +1,9 @@
-import { TransformableInfo } from 'logform'
-import fs from 'fs-extra'
-import { createLogger, format, transports } from 'winston'
-import _ from 'lodash'
+import { TransformableInfo } from 'logform';
+import fs from 'fs-extra';
+import { createLogger, format, transports } from 'winston';
+import _ from 'lodash';
 
-const SETTINGS_FILE = 'settings.json'
+const SETTINGS_FILE = 'settings.json';
 
 /**
  * Pretty console error formatting for the winston logger
@@ -14,12 +14,12 @@ const devFormat = format.combine(
   format.splat(),
   format.errors({ stack: true }),
   format.printf(({ timestamp, level, message, ...rest }: TransformableInfo) => {
-    let restString = JSON.stringify(rest, undefined, 2)
-    restString = restString === '{}' ? '' : restString
+    let restString = JSON.stringify(rest, undefined, 2);
+    restString = restString === '{}' ? '' : restString;
 
-    return `[${(new Date(timestamp)).toLocaleString()}] ${level} - ${message} ${restString}`
+    return `[${(new Date(timestamp)).toLocaleString()}] ${level} - ${message} ${restString}`;
   })
-)
+);
 
 /**
  * General output & error logger. Writes pretty print messages to the console, writes error messages to a log file.
@@ -38,7 +38,7 @@ export const msgLogger = createLogger({
       level: 'error'
     })
   ]
-})
+});
 
 /**
  * Event logger or 'Stats' logger. Logs when important events happen (eg: Turned the lights on, changed the fan mode)
@@ -56,7 +56,7 @@ export const statLogger = createLogger({
       level: 'info'
     })
   ]
-})
+});
 
 /**
  * Ensures consistent error logging.
@@ -65,7 +65,7 @@ export const statLogger = createLogger({
  * @param err Error object
  */
 export function logError (message: string, err: Error) {
-  msgLogger.error({ message: `${message} ${err.message}`, err: err, stack: err.stack })
+  msgLogger.error({ message: `${message} ${err.message}`, err: err, stack: err.stack });
   // console.error(`${err}\n${err.stack}`)
 }
 
@@ -159,10 +159,47 @@ export interface ISettings {
   radioTherm: IRadioThermSettings
 }
 
+const DEFAULT_SETTINGS: ISettings = {
+  tplink: {
+    officeFan: {
+      address: '',
+      name: '',
+      insideSourceID: '',
+      outsideSourceID: '',
+      tempThreshold: 77
+    },
+    houseFan: {
+      address: '',
+      name: '',
+      insideSourceID: '',
+      outsideSourceID: '',
+      tempThreshold: 60
+    },
+    boxFan: {
+      address: '',
+      name: '',
+      insideSourceID: '',
+      outsideSourceID: '',
+      tempThreshold: 60
+    }
+  },
+  acuparse: {
+    hostname: '',
+    officeTowerID: '',
+    diningTowerID: '',
+    bedroomTowerID: ''
+  },
+  radioTherm: {
+    hostname: '',
+    temperatureDiff: 6
+  }
+};
+Object.freeze(DEFAULT_SETTINGS);
+
 /**
  * Lazy initialized cache of the settings.
  */
-let settings = <ISettings|null> null
+let settings: ISettings|null = null;
 
 /**
  * Loads the settings from a file. If the settings file fails to load, this writes
@@ -171,45 +208,11 @@ let settings = <ISettings|null> null
 async function _loadSettings (): Promise<ISettings> {
   return fs.readJson(SETTINGS_FILE)
     .catch((err) => {
-      logError('Failed to load settings. Saving defaults', err)
-      settings = {
-        tplink: {
-          officeFan: {
-            address: '',
-            name: '',
-            insideSourceID: '',
-            outsideSourceID: '',
-            tempThreshold: 77
-          },
-          houseFan: {
-            address: '',
-            name: '',
-            insideSourceID: '',
-            outsideSourceID: '',
-            tempThreshold: 60
-          },
-          boxFan: {
-            address: '',
-            name: '',
-            insideSourceID: '',
-            outsideSourceID: '',
-            tempThreshold: 60
-          }
-        },
-        acuparse: {
-          hostname: '',
-          officeTowerID: '',
-          diningTowerID: '',
-          bedroomTowerID: ''
-        },
-        radioTherm: {
-          hostname: '',
-          temperatureDiff: 6
-        }
-      }
+      logError('Failed to load settings. Saving defaults', err);
+      settings = _.cloneDeep(DEFAULT_SETTINGS);
       return saveSettings()
-        .then(() => Promise.reject(err))
-    })
+        .then(() => Promise.reject(err));
+    });
 }
 
 /**
@@ -217,7 +220,7 @@ async function _loadSettings (): Promise<ISettings> {
  */
 export async function saveSettings () {
   return fs.writeJson(SETTINGS_FILE, settings, { spaces: 2 })
-    .catch((err) => logError('Failed to save settings.', err))
+    .catch((err) => logError('Failed to save settings.', err));
 }
 
 /**
@@ -227,8 +230,8 @@ export async function saveSettings () {
  */
 export async function getSettings (): Promise<ISettings> {
   if (_.isEmpty(settings)) {
-    settings = await _loadSettings()
-    await saveSettings()
+    settings = await _loadSettings();
+    await saveSettings();
   }
-  return settings ?? <ISettings>{}
+  return settings ?? _.cloneDeep(DEFAULT_SETTINGS);
 }

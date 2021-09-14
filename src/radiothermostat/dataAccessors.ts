@@ -1,23 +1,23 @@
-import { DataStoreAccessor } from '../datastore'
-import { getThermostatState } from './api'
+import { DataStoreAccessor } from '../datastore';
+import { getThermostatState } from './api';
 
 class RadioThermoFanModeDataAccessor extends DataStoreAccessor {
-  name: string
+  name: string;
 
   constructor (inName: string) {
-    super()
-    this.name = inName
+    super();
+    this.name = inName;
   }
 
   dataName (): string {
-    return this.name
+    return this.name;
   }
 
   async getState (): Promise<any> {
-    const tstat = await getThermostatState()
+    const tstat = await getThermostatState();
 
-    return tstat.fmode
+    return tstat.fmode;
   }
 }
 
-export const ThermoStatFanData = new RadioThermoFanModeDataAccessor('houseFan')
+export const ThermoStatFanData = new RadioThermoFanModeDataAccessor('houseFan');

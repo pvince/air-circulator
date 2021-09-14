@@ -29,4 +29,4 @@ export interface IMainResult {
     main: IMain
 }
 
-export const MAIN_TOWER_ID = 'main'
+export const MAIN_TOWER_ID = 'main';
