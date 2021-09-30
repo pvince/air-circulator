@@ -1,7 +1,7 @@
 import { Client } from 'tplink-smarthome-api';
 import { DataStoreAccessor } from '../services/datastore';
 import { AnyDevice } from 'tplink-smarthome-api/lib/client';
-import { logError, msgLogger, statLogger } from '../services/settings';
+import { ITPLinkPlugSetting, logError, msgLogger, statLogger } from '../services/settings';
 
 /**
  * Declares an enum that can be used to toggle the plug state.
@@ -75,11 +75,35 @@ async function findDevices (options?: IFindDevicesOptions): Promise<AnyDevice[]>
 }
 
 /**
+ * Handles creating a smart plug and locating it on the network.
+ *
+ * @param plugSettings - Plug settings that can be used to locate the plug
+ * @returns - Returns a new smart plug, or null if a plug could not be found with the provided settings.
+ */
+async function createSmartPlug (plugSettings: ITPLinkPlugSetting): Promise<SmartPlug|null> {
+  let newPlug: SmartPlug | null = new SmartPlug(plugSettings.address, plugSettings.name);
+
+  const plugAddress = await newPlug.searchByName();
+  if (plugAddress === null) {
+    // We couldn't find the plug. This means it is probably offline.
+    msgLogger.error(`Failed to connect to ${plugSettings.name} at ${plugSettings.address}. Cannot check & set fan state.`);
+    newPlug = null;
+  } else if (plugAddress !== plugSettings.address) {
+    // We found the plug, but its address changed.
+    msgLogger.info(`Updating ${plugSettings.name} IP address to ${plugAddress}.`);
+    plugSettings.address = plugAddress;
+  }
+
+  return newPlug;
+}
+
+/**
  * This exists so that we can fake out certain methods for unit tests. (ex: Finding devices)
  * SmartPlug should use this apiMethods object to call methods on this class.
  */
 export const apiMethods = {
-  findDevices: findDevices
+  findDevices,
+  createSmartPlug
 };
 
 /**

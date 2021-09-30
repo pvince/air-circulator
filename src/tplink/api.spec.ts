@@ -11,6 +11,7 @@ import sinonChai from 'sinon-chai';
 import { Plug, Client } from 'tplink-smarthome-api';
 import * as tpLinkAPI from './api';
 import { SmartPlug } from './api';
+import { ITPLinkPlugSetting } from '../services/settings';
 
 chai.use(sinonChai);
 
@@ -18,7 +19,7 @@ describe('SmartPlug', function () {
   describe('searchByName', function () {
     interface fakePlugParams {
       name?: string;
-      ipAddress?: string;
+      address?: string;
     }
 
     /**
@@ -30,7 +31,7 @@ describe('SmartPlug', function () {
     function _getFakePlug (plugParams?: fakePlugParams): Plug {
       return new Plug({
         client: new Client(),
-        host: plugParams?.ipAddress ?? '10.15.123.41',
+        host: plugParams?.address ?? '10.15.123.41',
         sysInfo: {
           sw_ver: '1.0.3 Build 210414 Rel.193918',
           hw_ver: '4.0',
@@ -52,61 +53,61 @@ describe('SmartPlug', function () {
     });
 
     it('should find the device.', async function () {
-      const settingsDeviceInfo = {
+      const settingsDeviceInfo: ITPLinkPlugSetting = {
         name: 'House fan',
-        ipAddress: '192.168.1.145'
+        address: '192.168.1.145'
       };
 
       // Ensure that we can find a 'device' with this information
       // sinon.replace(tpLinkAPI.apiMethods, 'findDevices', sinon.fake.returns(Promise.resolve([_getFakePlug(deviceInfo)])));
 
       // Create the SmartPlug
-      const smartPlug = new SmartPlug(settingsDeviceInfo.ipAddress, settingsDeviceInfo.name);
+      const smartPlug = new SmartPlug(settingsDeviceInfo.address, settingsDeviceInfo.name);
       sinon.replace(smartPlug, 'getDevice', sinon.fake.returns(Promise.resolve(_getFakePlug(settingsDeviceInfo))));
 
       // Now, make sure that we can find the device by name.
       const foundAtAddress = await smartPlug.searchByName();
 
-      expect(foundAtAddress).to.eql(settingsDeviceInfo.ipAddress);
+      expect(foundAtAddress).to.eql(settingsDeviceInfo.address);
       expect(smartPlug.name).to.eql(settingsDeviceInfo.name);
     });
 
     it('should find the device with a new IP address', async function () {
-      const settingsDeviceInfo = {
+      const settingsDeviceInfo: ITPLinkPlugSetting = {
         name: 'House fan',
-        ipAddress: '192.168.1.145'
+        address: '192.168.1.145'
       };
 
-      const actualDeviceInfo = {
+      const actualDeviceInfo: ITPLinkPlugSetting = {
         name: settingsDeviceInfo.name,
-        ipAddress: '192.168.1.123'
+        address: '192.168.1.123'
       };
 
       // Ensure that we can find a 'device' with this information
       sinon.replace(tpLinkAPI.apiMethods, 'findDevices', sinon.fake.returns(Promise.resolve([_getFakePlug(actualDeviceInfo)])));
 
       // Create the SmartPlug
-      const smartPlug = new SmartPlug(settingsDeviceInfo.ipAddress, settingsDeviceInfo.name);
+      const smartPlug = new SmartPlug(settingsDeviceInfo.address, settingsDeviceInfo.name);
       sinon.replace(smartPlug, 'getDevice', sinon.fake.throws(new Error('Failed to find device.')));
 
       // Now, make sure that we can find the device by name.
       const foundAtAddress = await smartPlug.searchByName();
 
-      expect(foundAtAddress).to.eql(actualDeviceInfo.ipAddress);
+      expect(foundAtAddress).to.eql(actualDeviceInfo.address);
       expect(smartPlug.name).to.eql(actualDeviceInfo.name);
     });
 
     it('shouldn\'t find the device.', async function () {
-      const settingsDeviceInfo = {
+      const settingsDeviceInfo: ITPLinkPlugSetting = {
         name: 'House fan',
-        ipAddress: '192.168.1.145'
+        address: '192.168.1.145'
       };
 
       // Ensure that we can find a 'device' with this information
       sinon.replace(tpLinkAPI.apiMethods, 'findDevices', sinon.fake.returns(Promise.resolve([])));
 
       // Create the SmartPlug
-      const smartPlug = new SmartPlug(settingsDeviceInfo.ipAddress, settingsDeviceInfo.name);
+      const smartPlug = new SmartPlug(settingsDeviceInfo.address, settingsDeviceInfo.name);
       sinon.replace(smartPlug, 'getDevice', sinon.fake.throws(new Error('Failed to find device.')));
 
       // Now, make sure that we can find the device by name.
@@ -116,19 +117,19 @@ describe('SmartPlug', function () {
     });
 
     it('should find a device with the wrong name', async function () {
-      const settingsDeviceInfo = {
+      const settingsDeviceInfo: ITPLinkPlugSetting = {
         name: 'House fan',
-        ipAddress: '192.168.1.145'
+        address: '192.168.1.145'
       };
 
-      const actualDeviceInfo = {
+      const actualDeviceInfo: ITPLinkPlugSetting = {
         name: settingsDeviceInfo.name,
-        ipAddress: '192.168.1.123'
+        address: '192.168.1.123'
       };
 
-      const wrongDeviceInfo = {
+      const wrongDeviceInfo: ITPLinkPlugSetting = {
         name: 'Other device',
-        ipAddress: settingsDeviceInfo.ipAddress
+        address: settingsDeviceInfo.address
       };
 
       // Ensure that we can find a 'device' with this information
@@ -136,13 +137,13 @@ describe('SmartPlug', function () {
         sinon.fake.returns(Promise.resolve([_getFakePlug(wrongDeviceInfo), _getFakePlug(actualDeviceInfo)])));
 
       // Create the SmartPlug
-      const smartPlug = new SmartPlug(settingsDeviceInfo.ipAddress, settingsDeviceInfo.name);
+      const smartPlug = new SmartPlug(settingsDeviceInfo.address, settingsDeviceInfo.name);
       sinon.replace(smartPlug, 'getDevice', sinon.fake.returns(Promise.resolve(_getFakePlug(wrongDeviceInfo))));
 
       // Now, make sure that we can find the device by name.
       const foundAtAddress = await smartPlug.searchByName();
 
-      expect(foundAtAddress).to.eql(actualDeviceInfo.ipAddress);
+      expect(foundAtAddress).to.eql(actualDeviceInfo.address);
       expect(smartPlug.name).to.eql(actualDeviceInfo.name);
     });
   });

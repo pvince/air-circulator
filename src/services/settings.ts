@@ -100,7 +100,10 @@ export interface IAcuparseSettings {
   bedroomTowerID: string;
 }
 
-export interface ITPLinkFanSetting {
+/**
+ * Basic plug settings.
+ */
+export interface ITPLinkPlugSetting {
   /**
    * Name of the device plug. Used to lookup the device if the IP address changes
    */
@@ -110,6 +113,9 @@ export interface ITPLinkFanSetting {
    * IP address of the device. Do not set this directly, allow the program to manage it.
    */
   address: string;
+}
+
+export interface ITPLinkFanSetting extends ITPLinkPlugSetting{
 
   /**
    * Acuparse ID that will be used as the 'inside' temperature.
