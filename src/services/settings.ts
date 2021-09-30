@@ -157,7 +157,7 @@ export interface IRadioThermSettings {
 }
 
 /**
- * Settings interface
+ * acuparseSettings interface
  */
 export interface ISettings {
   tplink: ITPLinkSettings;

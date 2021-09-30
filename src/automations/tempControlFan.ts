@@ -5,7 +5,7 @@
  */
 import { ITPLinkFanSetting, msgLogger, statLogger } from '../services/settings';
 import { PlugState, SmartPlug } from '../tplink/api';
-import * as acuparse from '../acuparse/api';
+import { acuparse } from '../acuparse/api';
 import { ITower } from '../acuparse/types';
 
 /**
@@ -22,7 +22,7 @@ async function setPlugState (plug: SmartPlug, inFanState: PlugState) {
 /**
  * Checks the conditions that are relevant to the fans state, and toggles the state accordingly
  *
- * @param fanSetting - Settings that tell us about the fan
+ * @param fanSetting - acuparseSettings that tell us about the fan
  */
 export async function checkAndSetFanState (fanSetting: ITPLinkFanSetting) {
   const fanPlug = new SmartPlug(fanSetting.address, fanSetting.name);

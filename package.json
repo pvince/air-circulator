@@ -6,7 +6,8 @@
     "test": "mocha -r ts-node/register src/**/*.spec.ts",
     "search": "tsc && node dist/identify.js",
     "start": "tsc && node dist/app.js",
-    "build": "rm -rf dist && tsc"
+    "build": "rm -rf dist && tsc",
+    "build_win": "(if exist dist rd /q /s dist) && tsc"
   },
   "keywords": [],
   "author": "",

@@ -14,7 +14,7 @@ export interface ISettings {
 
 const API_SUB_PATH = '/api/v1/json';
 
-export const Settings:ISettings = {
+export const acuparseSettings:ISettings = {
   apiHost: ''
 };
 
@@ -25,7 +25,7 @@ export const Settings:ISettings = {
  * @param queryParams - Query level parameters
  */
 async function _runGetRequest (apiMethod: string, queryParams?: string | Record<string, string | number | boolean | null | undefined> | URLSearchParams): Promise<any> {
-  return got(`${Settings.apiHost}/${API_SUB_PATH}/${apiMethod}`, { searchParams: queryParams }).json();
+  return got(`${acuparseSettings.apiHost}/${API_SUB_PATH}/${apiMethod}`, { searchParams: queryParams }).json();
 }
 
 /**
@@ -34,7 +34,7 @@ async function _runGetRequest (apiMethod: string, queryParams?: string | Record<
  * @param towerID - TowerID string
  * @returns - Returns tower data
  */
-export async function getTower (towerID: string): Promise<ITower> {
+async function getTower (towerID: string): Promise<ITower> {
   let towerResult:ITower;
 
   if (towerID === MAIN_TOWER_ID) {
@@ -54,10 +54,18 @@ export async function getTower (towerID: string): Promise<ITower> {
  *
  * @returns - Returns 'Main' tower information
  */
-export async function getMain (): Promise<IMain> {
+async function getMain (): Promise<IMain> {
   const mainResult:IMainResult = await _runGetRequest('dashboard', 'main');
 
   mainResult.main.name = 'Outside';
 
   return mainResult.main;
 }
+
+/**
+ * Ma
+ */
+export const acuparse = {
+  getTower,
+  getMain
+};

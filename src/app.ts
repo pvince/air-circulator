@@ -1,4 +1,4 @@
-import * as acuparse from './acuparse/api';
+import { acuparse, acuparseSettings } from './acuparse/api';
 import * as radiotherm from './radiothermostat/api';
 import { getSettings, ISettings, logError, msgLogger, saveSettings } from './services/settings';
 import { ThermostatMode } from './radiothermostat/types';
@@ -12,7 +12,7 @@ import { checkAndSetThermostat } from './automations/thermostatFan';
  * @param settings Script settings
  */
 async function runScript (settings: ISettings) {
-  acuparse.Settings.apiHost = settings.acuparse.hostname;
+  acuparseSettings.apiHost = settings.acuparse.hostname;
   radiotherm.Settings.apiHost = settings.radioTherm.hostname;
 
   // Print out some general temperature data from around the house
