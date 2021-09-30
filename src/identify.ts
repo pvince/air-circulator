@@ -1,5 +1,5 @@
 import { apiMethods } from './tplink/api';
-import { msgLogger } from './settings';
+import { msgLogger } from './services/settings';
 import columnify from 'columnify';
 import cliProgress from 'cli-progress';
 

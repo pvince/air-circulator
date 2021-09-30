@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import * as acuparse from './acuparse/api';
 import * as radiotherm from './radiothermostat/api';
-import { getSettings, ISettings, ITPLinkFanSetting, logError, msgLogger, saveSettings, statLogger } from './settings';
+import { getSettings, ISettings, ITPLinkFanSetting, logError, msgLogger, saveSettings, statLogger } from './services/settings';
 import { FanMode, FanState, ThermostatMode, ThermostatState } from './radiothermostat/types';
 import columnify from 'columnify';
 import { PlugState, SmartPlug } from './tplink/api';

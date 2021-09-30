@@ -1,4 +1,4 @@
-import { DataStoreAccessor } from '../datastore';
+import { DataStoreAccessor } from '../services/datastore';
 import { getThermostatState } from './api';
 
 class RadioThermoFanModeDataAccessor extends DataStoreAccessor {

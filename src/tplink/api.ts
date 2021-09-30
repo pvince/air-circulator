@@ -1,7 +1,7 @@
 import { Client } from 'tplink-smarthome-api';
-import { DataStoreAccessor } from '../datastore';
+import { DataStoreAccessor } from '../services/datastore';
 import { AnyDevice } from 'tplink-smarthome-api/lib/client';
-import { logError, msgLogger, statLogger } from '../settings';
+import { logError, msgLogger, statLogger } from '../services/settings';
 
 /**
  * Declares an enum that can be used to toggle the plug state.
