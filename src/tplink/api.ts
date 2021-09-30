@@ -122,9 +122,14 @@ export class SmartPlug extends DataStoreAccessor {
    */
   async searchByName (): Promise<string|null> {
     let ipAddress;
+    // noinspection ExceptionCaughtLocallyJS
     try {
       // Do a basic device lookup.
-      await this._getDevice();
+      const device = await this._getDevice();
+
+      if (device.alias !== this.name) {
+        throw new Error(`Device with IP address ${this.address} is named ${device.alias} instead of ${this.name}. Need to lookup ${this.name}`);
+      }
 
       // If we didn't encounter an error, we found the device by its IP address.
       ipAddress = this.address;

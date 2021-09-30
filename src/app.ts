@@ -76,10 +76,10 @@ async function checkAndSetThermostat (settings: ISettings, officeTemperature: nu
 async function checkAndSetFanState (fanSetting: ITPLinkFanSetting) {
   const fanPlug = new SmartPlug(fanSetting.address, fanSetting.name);
 
-  const plugAlias = await fanPlug.searchByName();
+  const plugAddress = await fanPlug.searchByName();
 
   // Ensure we were able to find the plug...
-  if (plugAlias === null) {
+  if (plugAddress === null) {
     msgLogger.error(`Failed to connect to ${fanSetting.name} at ${fanSetting.address}. Cannot check & set fan state.`);
   } else {
     // Check to see if the plug is at a different IP address than we have saved in the settings...
