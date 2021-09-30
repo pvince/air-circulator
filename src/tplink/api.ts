@@ -43,7 +43,7 @@ export interface IFindDevicesOptions {
  *
  * @param options - Optional configuration
  */
-export async function findDevices (options?: IFindDevicesOptions): Promise<AnyDevice[]> {
+async function findDevices (options?: IFindDevicesOptions): Promise<AnyDevice[]> {
   // noinspection JSUnusedLocalSymbols
   const status = options?.progress ?? function (total: number, current: number, deviceCount: number): void {};
   const discoveryPeriod = options?.discoveryPeriod ?? 60;
@@ -75,6 +75,14 @@ export async function findDevices (options?: IFindDevicesOptions): Promise<AnyDe
 }
 
 /**
+ * This exists so that we can fake out certain methods for unit tests. (ex: Finding devices)
+ * SmartPlug should use this apiMethods object to call methods on this class.
+ */
+export const apiMethods = {
+  findDevices: findDevices
+};
+
+/**
  * A helper class that wraps up the 'Smart Plug' functionality.
  */
 export class SmartPlug extends DataStoreAccessor {
@@ -92,6 +100,7 @@ export class SmartPlug extends DataStoreAccessor {
    * TP-Link API object
    */
   private plugClient: Client;
+
   /**
    * Constructor
    *
@@ -108,7 +117,7 @@ export class SmartPlug extends DataStoreAccessor {
   /**
    * Retrieves a TP-Link device
    */
-  private async _getDevice (): Promise<AnyDevice> {
+  public async getDevice (): Promise<AnyDevice> {
     return this.plugClient.getDevice({ host: this.address });
   }
 
@@ -124,7 +133,7 @@ export class SmartPlug extends DataStoreAccessor {
     let ipAddress;
     try {
       // Do a basic device lookup.
-      const device = await this._getDevice();
+      const device = await this.getDevice();
 
       if (device.alias !== this.name) {
         // noinspection ExceptionCaughtLocallyJS
@@ -137,7 +146,7 @@ export class SmartPlug extends DataStoreAccessor {
       // If we had an error, then the IP address is wrong, or the device is offline.
       logError(`Failed to find a ${this.name} with IP address ${this.address}. Attempting to lookup device by name.`, err);
 
-      const devices = await findDevices({ discoveryPeriod: 1 });
+      const devices = await apiMethods.findDevices({ discoveryPeriod: 1 });
 
       const thisDevice = devices.find((device) => device.alias === this.name);
       ipAddress = thisDevice?.host ?? null;
@@ -160,7 +169,7 @@ export class SmartPlug extends DataStoreAccessor {
    * Returns the plugs 'state' (Is it on, or is it off)
    */
   async getState (): Promise<PlugState> {
-    const plugDevice = await this._getDevice();
+    const plugDevice = await this.getDevice();
 
     return (await plugDevice.getPowerState()) ? PlugState.On : PlugState.Off;
   }
@@ -171,7 +180,7 @@ export class SmartPlug extends DataStoreAccessor {
    * @param inPlugState - Plug state to set.
    */
   async setPlugState (inPlugState: PlugState) {
-    const plugDevice = await this._getDevice();
+    const plugDevice = await this.getDevice();
 
     await plugDevice.setPowerState(inPlugState === PlugState.On);
     await this.storeState();
