@@ -14,6 +14,7 @@ import { acuparse } from '../acuparse/api';
 import { ITower } from '../acuparse/types';
 import { checkAndSetFanState } from './tempControlFan';
 import { IDeviationResult } from '../services/datastore';
+import _ from 'lodash';
 
 chai.use(sinonChai);
 
@@ -58,15 +59,60 @@ function fakeTowerHandler (fakeTowers: IFakeTowers) {
 }
 
 /**
+ * Builds a fake 'fan setting'.
+ *
+ * @param settings - Optional settings object to override default generated settings.
+ * @returns - Returns fake fan settings.
+ */
+function getFakeFanSetting (settings?: Partial<ITPLinkFanSetting>): ITPLinkFanSetting {
+  const defaultSettings: ITPLinkFanSetting = {
+    address: '192.168.1.70',
+    name: 'House Fan',
+    insideSourceID: '00010242',
+    outsideSourceID: 'main',
+    tempThreshold: 60
+  };
+
+  return _.defaults(settings, defaultSettings);
+}
+
+/**
+ * Builds the boilerplate 'Fake Tower' settings. Allows overriding the actual key data values.
+ *
+ * @param fanSettings - Used to populate TowerID settings
+ * @param insideTemp - Inside temperature value
+ * @param outsideTemp - (Optional) Outside temperature value. Omitting this would represent the scenario where a setting
+ *                      says that it has an 'outside' tower, but that tower doesn't actually exist.
+ * @returns = Returns the 'Fake Tower' settings.
+ */
+function getFakeTowerSettings (fanSettings: ITPLinkFanSetting, insideTemp: number, outsideTemp?: number): IFakeTowers {
+  const result: IFakeTowers = {
+    inside: {
+      towerID: fanSettings.insideSourceID,
+      temperature: insideTemp
+    }
+  };
+
+  if (!_.isEmpty(fanSettings.outsideSourceID) && _.isNumber(outsideTemp)) {
+    result.outside = {
+      towerID: fanSettings.outsideSourceID,
+      temperature: outsideTemp
+    };
+  }
+
+  return result;
+}
+
+/**
  * Builds a fake plug with a fake initial state.
  *
  * @param plugSettings - Address & name for a plug
  * @param initialState - Initial plug state
  * @returns - Returns plug state
  */
-export function getFakeSmartPlug (plugSettings: ITPLinkPlugSetting, initialState: PlugState = PlugState.Off): FakeSmartPlug {
+export async function getFakeSmartPlug (plugSettings: ITPLinkPlugSetting, initialState: PlugState = PlugState.Off): Promise<FakeSmartPlug> {
   const fakePlug = new FakeSmartPlug(plugSettings.address, plugSettings.name);
-  fakePlug.setPlugState(initialState);
+  await fakePlug.setPlugState(initialState);
   return fakePlug;
 }
 
@@ -105,7 +151,7 @@ describe('checkAndSetFanState', function () {
    * @param deviation - (Default: false) what checkForDeviation returns
    */
   async function _setupAndRun (fanSettings: ITPLinkFanSetting, fakeTowers: IFakeTowers, initialState: PlugState, expectedState: PlugState, deviation = false) {
-    const fakePlug = getFakeSmartPlug(fanSettings, initialState);
+    const fakePlug = await getFakeSmartPlug(fanSettings, initialState);
 
     sinon.replace(apiMethods, 'createSmartPlug', sinon.fake.resolves(fakePlug));
     sinon.replace(acuparse, 'getTower', sinon.stub().callsFake(fakeTowerHandler(fakeTowers)));
@@ -126,24 +172,8 @@ describe('checkAndSetFanState', function () {
   }
 
   it('should turn on fan', async function () {
-    const fanSettings: ITPLinkFanSetting = {
-      address: '192.168.1.70',
-      name: 'House Fan',
-      insideSourceID: '00010242',
-      outsideSourceID: 'main',
-      tempThreshold: 60
-    };
-
-    const fakeTowers: IFakeTowers = {
-      inside: {
-        towerID: fanSettings.insideSourceID,
-        temperature: 65
-      },
-      outside: {
-        towerID: fanSettings.outsideSourceID,
-        temperature: 60
-      }
-    };
+    const fanSettings: ITPLinkFanSetting = getFakeFanSetting({ tempThreshold: 60 });
+    const fakeTowers: IFakeTowers = getFakeTowerSettings(fanSettings, 65, 60);
 
     const initialState = PlugState.Off;
     const finalState = PlugState.On;
@@ -152,24 +182,8 @@ describe('checkAndSetFanState', function () {
   });
 
   it('should turn off fan (Outside higher)', async function () {
-    const fanSettings: ITPLinkFanSetting = {
-      address: '192.168.1.70',
-      name: 'House Fan',
-      insideSourceID: '00010242',
-      outsideSourceID: 'main',
-      tempThreshold: 60
-    };
-
-    const fakeTowers: IFakeTowers = {
-      inside: {
-        towerID: fanSettings.insideSourceID,
-        temperature: 61
-      },
-      outside: {
-        towerID: fanSettings.outsideSourceID,
-        temperature: 65
-      }
-    };
+    const fanSettings: ITPLinkFanSetting = getFakeFanSetting({ tempThreshold: 60 });
+    const fakeTowers: IFakeTowers = getFakeTowerSettings(fanSettings, 61, 65);
 
     const initialState = PlugState.On;
     const finalState = PlugState.Off;
@@ -178,24 +192,8 @@ describe('checkAndSetFanState', function () {
   });
 
   it('should turn off fan (Inside below threshold)', async function () {
-    const fanSettings: ITPLinkFanSetting = {
-      address: '192.168.1.70',
-      name: 'House Fan',
-      insideSourceID: '00010242',
-      outsideSourceID: 'main',
-      tempThreshold: 60
-    };
-
-    const fakeTowers: IFakeTowers = {
-      inside: {
-        towerID: fanSettings.insideSourceID,
-        temperature: 59
-      },
-      outside: {
-        towerID: fanSettings.outsideSourceID,
-        temperature: 65
-      }
-    };
+    const fanSettings: ITPLinkFanSetting = getFakeFanSetting({ tempThreshold: 60 });
+    const fakeTowers: IFakeTowers = getFakeTowerSettings(fanSettings, 59, 65);
 
     const initialState = PlugState.On;
     const finalState = PlugState.Off;
@@ -204,24 +202,8 @@ describe('checkAndSetFanState', function () {
   });
 
   it('should leave fan on (inside above threshold, outside lower)', async function () {
-    const fanSettings: ITPLinkFanSetting = {
-      address: '192.168.1.70',
-      name: 'House Fan',
-      insideSourceID: '00010242',
-      outsideSourceID: 'main',
-      tempThreshold: 60
-    };
-
-    const fakeTowers: IFakeTowers = {
-      inside: {
-        towerID: fanSettings.insideSourceID,
-        temperature: 61
-      },
-      outside: {
-        towerID: fanSettings.outsideSourceID,
-        temperature: 50
-      }
-    };
+    const fanSettings: ITPLinkFanSetting = getFakeFanSetting({ tempThreshold: 60 });
+    const fakeTowers: IFakeTowers = getFakeTowerSettings(fanSettings, 61, 50);
 
     const initialState = PlugState.On;
     const finalState = PlugState.On;
@@ -230,24 +212,8 @@ describe('checkAndSetFanState', function () {
   });
 
   it('should leave fan off (inside below threshold, outside lower)', async function () {
-    const fanSettings: ITPLinkFanSetting = {
-      address: '192.168.1.70',
-      name: 'House Fan',
-      insideSourceID: '00010242',
-      outsideSourceID: 'main',
-      tempThreshold: 60
-    };
-
-    const fakeTowers: IFakeTowers = {
-      inside: {
-        towerID: fanSettings.insideSourceID,
-        temperature: 59
-      },
-      outside: {
-        towerID: fanSettings.outsideSourceID,
-        temperature: 50
-      }
-    };
+    const fanSettings: ITPLinkFanSetting = getFakeFanSetting({ tempThreshold: 60 });
+    const fakeTowers: IFakeTowers = getFakeTowerSettings(fanSettings, 59, 50);
 
     const initialState = PlugState.Off;
     const finalState = PlugState.Off;
@@ -256,24 +222,8 @@ describe('checkAndSetFanState', function () {
   });
 
   it('should leave fan off (inside above threshold, outside higher)', async function () {
-    const fanSettings: ITPLinkFanSetting = {
-      address: '192.168.1.70',
-      name: 'House Fan',
-      insideSourceID: '00010242',
-      outsideSourceID: 'main',
-      tempThreshold: 60
-    };
-
-    const fakeTowers: IFakeTowers = {
-      inside: {
-        towerID: fanSettings.insideSourceID,
-        temperature: 61
-      },
-      outside: {
-        towerID: fanSettings.outsideSourceID,
-        temperature: 62
-      }
-    };
+    const fanSettings: ITPLinkFanSetting = getFakeFanSetting({ tempThreshold: 60 });
+    const fakeTowers: IFakeTowers = getFakeTowerSettings(fanSettings, 61, 62);
 
     const initialState = PlugState.Off;
     const finalState = PlugState.Off;
@@ -282,24 +232,8 @@ describe('checkAndSetFanState', function () {
   });
 
   it('Deviated to On, would turn off', async function () {
-    const fanSettings: ITPLinkFanSetting = {
-      address: '192.168.1.70',
-      name: 'House Fan',
-      insideSourceID: '00010242',
-      outsideSourceID: 'main',
-      tempThreshold: 60
-    };
-
-    const fakeTowers: IFakeTowers = {
-      inside: {
-        towerID: fanSettings.insideSourceID,
-        temperature: 59
-      },
-      outside: {
-        towerID: fanSettings.outsideSourceID,
-        temperature: 65
-      }
-    };
+    const fanSettings: ITPLinkFanSetting = getFakeFanSetting({ tempThreshold: 60 });
+    const fakeTowers: IFakeTowers = getFakeTowerSettings(fanSettings, 59, 65);
 
     const initialState = PlugState.On;
     const finalState = PlugState.On;
@@ -308,20 +242,8 @@ describe('checkAndSetFanState', function () {
   });
 
   it('should turn on fan, no outside tower', async function () {
-    const fanSettings: ITPLinkFanSetting = {
-      address: '192.168.1.70',
-      name: 'House Fan',
-      insideSourceID: '00010242',
-      outsideSourceID: '',
-      tempThreshold: 60
-    };
-
-    const fakeTowers: IFakeTowers = {
-      inside: {
-        towerID: fanSettings.insideSourceID,
-        temperature: 61
-      }
-    };
+    const fanSettings: ITPLinkFanSetting = getFakeFanSetting({ tempThreshold: 60, outsideSourceID: '' });
+    const fakeTowers: IFakeTowers = getFakeTowerSettings(fanSettings, 61);
 
     const initialState = PlugState.Off;
     const finalState = PlugState.On;
@@ -330,20 +252,8 @@ describe('checkAndSetFanState', function () {
   });
 
   it('should turn off fan, no outside tower', async function () {
-    const fanSettings: ITPLinkFanSetting = {
-      address: '192.168.1.70',
-      name: 'House Fan',
-      insideSourceID: '00010242',
-      outsideSourceID: '',
-      tempThreshold: 60
-    };
-
-    const fakeTowers: IFakeTowers = {
-      inside: {
-        towerID: fanSettings.insideSourceID,
-        temperature: 59
-      }
-    };
+    const fanSettings: ITPLinkFanSetting = getFakeFanSetting({ tempThreshold: 60, outsideSourceID: '' });
+    const fakeTowers: IFakeTowers = getFakeTowerSettings(fanSettings, 59);
 
     const initialState = PlugState.On;
     const finalState = PlugState.Off;
@@ -352,45 +262,11 @@ describe('checkAndSetFanState', function () {
   });
 
   it('should leave fan on, no outside tower', async function () {
-    const fanSettings: ITPLinkFanSetting = {
-      address: '192.168.1.70',
-      name: 'House Fan',
-      insideSourceID: '00010242',
-      outsideSourceID: '',
-      tempThreshold: 60
-    };
-
-    const fakeTowers: IFakeTowers = {
-      inside: {
-        towerID: fanSettings.insideSourceID,
-        temperature: 61
-      }
-    };
+    const fanSettings: ITPLinkFanSetting = getFakeFanSetting({ tempThreshold: 60, outsideSourceID: '' });
+    const fakeTowers: IFakeTowers = getFakeTowerSettings(fanSettings, 61);
 
     const initialState = PlugState.On;
     const finalState = PlugState.On;
-
-    await _setupAndRun(fanSettings, fakeTowers, initialState, finalState);
-  });
-
-  it('should leave fan off, no outside tower', async function () {
-    const fanSettings: ITPLinkFanSetting = {
-      address: '192.168.1.70',
-      name: 'House Fan',
-      insideSourceID: '00010242',
-      outsideSourceID: '',
-      tempThreshold: 60
-    };
-
-    const fakeTowers: IFakeTowers = {
-      inside: {
-        towerID: fanSettings.insideSourceID,
-        temperature: 59
-      }
-    };
-
-    const initialState = PlugState.Off;
-    const finalState = PlugState.Off;
 
     await _setupAndRun(fanSettings, fakeTowers, initialState, finalState);
   });
