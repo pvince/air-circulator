@@ -1,7 +1,8 @@
 import { DataStoreAccessor } from '../services/datastore';
 import { getThermostatState } from './api';
+import { FanMode } from './types';
 
-class RadioThermoFanModeDataAccessor extends DataStoreAccessor {
+class RadioThermoFanModeDataAccessor extends DataStoreAccessor<FanMode> {
   name: string;
 
   constructor (inName: string) {
@@ -13,7 +14,7 @@ class RadioThermoFanModeDataAccessor extends DataStoreAccessor {
     return this.name;
   }
 
-  async getState (): Promise<any> {
+  async getState (): Promise<FanMode> {
     const tstat = await getThermostatState();
 
     return tstat.fmode;

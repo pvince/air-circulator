@@ -36,7 +36,9 @@ export async function checkAndSetThermostat (settings: ISettings, officeTemperat
   msgLogger.info(`Fan mode ${FanMode[tstat.fmode]}`);
   msgLogger.info(`Fan state ${FanState[tstat.fstate]}`);
 
-  if (!(await ThermoStatFanData.checkForDeviation())) {
+  const deviationData = await ThermoStatFanData.checkForDeviation();
+
+  if (!(deviationData.isDeviated)) {
     if (tstat.tmode === ThermostatMode.Cool) {
       const tempDiff = _.round(officeTemperature - (tstat.t_cool ?? officeTemperature), 2);
       msgLogger.info(`Currently office is ${tempDiff} warmer than the setpoint`);

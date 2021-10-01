@@ -30,14 +30,18 @@ export async function checkAndSetFanState (fanSetting: ITPLinkFanSetting) {
   // Ensure we were able to find the plug...
   if (fanPlug !== null) {
     // Check to see if the plug state has deviated from the last time we set it.
-    if (await fanPlug.checkForDeviation()) {
+    const deviationInfo = await fanPlug.checkForDeviation();
+
+    if (deviationInfo.isDeviated) {
       msgLogger.info(`${fanSetting.name} is currently overridden to ${PlugState[await fanPlug.getState()]} for the next ${await fanPlug.getRemainingDeviationMinutes()} minutes`);
     } else {
       // Plug is still in the same state we expected it to be in...
-      const fanState = await fanPlug.getState();
+      const stateCurrent = deviationInfo.currentState;
+      let stateTarget;
 
       // We need to find the temperatures we are working with.
       const insideTower = await acuparse.getTower(fanSetting.insideSourceID);
+      const insideTempF = insideTower.tempF;
 
       // Outside temperature is optional, so this requires a couple extra hoops.
       let outsideTower: ITower | null = null;
@@ -46,16 +50,18 @@ export async function checkAndSetFanState (fanSetting: ITPLinkFanSetting) {
       }
       const outsideTempF = outsideTower?.tempF ?? 0;
 
-      if (insideTower.tempF >= fanSetting.tempThreshold && insideTower.tempF > outsideTempF) {
-        if (fanState === PlugState.Off) {
-          await setPlugState(fanPlug, PlugState.On);
-        } else {
-          msgLogger.info(`No changes needed to ${fanSetting.name} state. Leaving fan set to ${PlugState[fanState]}`);
-        }
-      } else if (fanState === PlugState.On) {
-        await setPlugState(fanPlug, PlugState.Off);
+      // Determine the target state.
+      if (insideTempF >= fanSetting.tempThreshold && insideTempF > outsideTempF) {
+        stateTarget = PlugState.On;
       } else {
-        msgLogger.info(`No changes needed to ${fanSetting.name} state. Leaving fan set to ${PlugState[fanState]}`);
+        stateTarget = PlugState.Off;
+      }
+
+      // Check if we are going to change the fan state.
+      if (stateCurrent !== stateTarget) {
+        await setPlugState(fanPlug, stateTarget);
+      } else {
+        msgLogger.info(`No changes needed to ${fanSetting.name} state. Leaving fan set to ${PlugState[stateCurrent]}`);
       }
     }
   }

@@ -90,9 +90,18 @@ export async function setData<Type> (inKey: string, inData: Type) {
 const DEVIATION_LIMIT = 60;
 
 /**
+ * Interface that defines the response from the deviation data.
+ */
+export interface IDeviationResult<StateType> {
+  isDeviated: boolean;
+  currentState: StateType;
+  expectedState: StateType | null;
+}
+
+/**
  * Abstract class that can be implemented by specific data providers to store data into the cached file
  */
-export abstract class DataStoreAccessor {
+export abstract class DataStoreAccessor<StateType> {
   /**
    * Name used to store this data into cache
    */
@@ -101,7 +110,7 @@ export abstract class DataStoreAccessor {
   /**
    * Gets the current state of the item we are tracking.
    */
-  public abstract getState(): Promise<any>;
+  public abstract getState(): Promise<StateType>;
 
   /**
    * If there is a deviation time stored, this determines how long ago it happened in minutes.
@@ -133,25 +142,29 @@ export abstract class DataStoreAccessor {
    *
    * @returns Returns true if we are in an active 'deviation' state, false otherwise.
    */
-  public async checkForDeviation (): Promise<boolean> {
+  public async checkForDeviation (): Promise<IDeviationResult<StateType>> {
     const currentState = await this.getState();
-
-    let result = false;
-
     const previousData = await getDeviationData(this.dataName());
+
+    const result: IDeviationResult<StateType> = {
+      isDeviated: false,
+      currentState,
+      expectedState: previousData?.expectedData ?? null
+    };
+
     if (previousData !== null) {
       if (previousData.expectedData !== currentState) {
         // Current conditions do not match previously saved data.
         if (previousData.deviationDate === null) {
           // Previous data does not have a 'deviation time', this is the first time
           // the deviation has been detected.
-          result = true;
+          result.isDeviated = true;
           previousData.deviationDate = new Date();
           await saveData();
         } else if (DataStoreAccessor._getDeviationDifference(previousData) <= DEVIATION_LIMIT) {
           // We have previously detected the deviation, but it occurred in the last 60 minutes
           // so continue to report that we are in a deviation state.
-          result = true;
+          result.isDeviated = true;
         } else if (previousData.deviationDate) {
           // There is currently a deviation state, we had previously detected the state, however
           // it has been more than 60 minutes since this state was detected. Clear our deviation data

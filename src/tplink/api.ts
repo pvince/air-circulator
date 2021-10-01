@@ -109,7 +109,7 @@ export const apiMethods = {
 /**
  * A helper class that wraps up the 'Smart Plug' functionality.
  */
-export class SmartPlug extends DataStoreAccessor {
+export class SmartPlug extends DataStoreAccessor<PlugState> {
   /**
    * IP Address for the plug
    */
@@ -145,6 +145,12 @@ export class SmartPlug extends DataStoreAccessor {
     return this.plugClient.getDevice({ host: this.address });
   }
 
+  /**
+   * Name used to store this data into cache
+   *
+   * @returns Returns the plugs name
+   * @override
+   */
   public dataName (): string {
     return this.name;
   }
@@ -191,6 +197,9 @@ export class SmartPlug extends DataStoreAccessor {
 
   /**
    * Returns the plugs 'state' (Is it on, or is it off)
+   *
+   * @returns - Returns the plugs state
+   * @override
    */
   public async getState (): Promise<PlugState> {
     const plugDevice = await this.getDevice();

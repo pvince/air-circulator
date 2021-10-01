@@ -13,6 +13,7 @@ import { ITPLinkFanSetting, ITPLinkPlugSetting } from '../services/settings';
 import { acuparse } from '../acuparse/api';
 import { ITower } from '../acuparse/types';
 import { checkAndSetFanState } from './tempControlFan';
+import { IDeviationResult } from '../services/datastore';
 
 chai.use(sinonChai);
 
@@ -110,7 +111,13 @@ describe('checkAndSetFanState', function () {
     sinon.replace(acuparse, 'getTower', sinon.stub().callsFake(fakeTowerHandler(fakeTowers)));
 
     // Fake out functions on the smart plug
-    sinon.replace(fakePlug, 'checkForDeviation', sinon.fake.resolves(deviation));
+    const deviationResult: IDeviationResult<PlugState> = {
+      isDeviated: deviation,
+      currentState: initialState,
+      expectedState: null
+    };
+
+    sinon.replace(fakePlug, 'checkForDeviation', sinon.fake.resolves(deviationResult));
     sinon.replace(fakePlug, 'getRemainingDeviationMinutes', sinon.fake.resolves(15));
 
     await checkAndSetFanState(fanSettings);
