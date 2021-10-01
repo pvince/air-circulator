@@ -6,8 +6,8 @@
     "test": "mocha -r ts-node/register --require src/tests/hooks.spec.ts src/**/*.spec.ts",
     "search": "tsc && node dist/identify.js",
     "start": "tsc && node dist/app.js",
-    "build": "rm -rf dist && tsc",
-    "build_win": "(if exist dist rd /q /s dist) && tsc"
+    "build": "rm -rf dist && tsc -p tsconfig-build.json",
+    "build_win": "(if exist dist rd /q /s dist) && tsc -p tsconfig-build.json"
   },
   "keywords": [],
   "author": "",
