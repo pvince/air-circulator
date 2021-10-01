@@ -142,6 +142,52 @@ class FakeSmartPlug extends SmartPlug {
 
 describe('checkAndSetFanState', function () {
   /**
+   * Modifies API methods called by the function to ensure they return the data we want them to return.
+   *
+   * @param fanSettings - Settings that the program would have read from the settings.json
+   * @param fakeTowers - Fake tower data that we need to return
+   * @param initialState - The starting state of the plug
+   * @param deviation - Has the plug 'deviated' from the setting we think it should have?
+   */
+  async function _setup (fanSettings: ITPLinkFanSetting, fakeTowers: IFakeTowers, initialState: PlugState, deviation = false): Promise<FakeSmartPlug> {
+    const fakePlug = await getFakeSmartPlug(fanSettings, initialState);
+
+    // The checkAndSet function will try to create a plug. We want to make sure it gets our plug
+    sinon.replace(apiMethods, 'createSmartPlug', sinon.fake.resolves(fakePlug));
+
+    // The acuparse API will not be accessible to unit tests, so make sure it returns an appropriate tower.
+    sinon.replace(acuparse, 'getTower', sinon.stub().callsFake(fakeTowerHandler(fakeTowers)));
+
+    // Fake plug needs to return special data foro 'checkForDeviation'.
+    sinon.stub(fakePlug, 'checkForDeviation').callsFake(async (): Promise<IDeviationResult<PlugState>> => {
+      const result: IDeviationResult<PlugState> = {
+        isDeviated: deviation,
+        currentState: fakePlug.plugState,
+        expectedState: null
+      };
+      return Promise.resolve(result);
+    });
+
+    // In case of deviation, this function needs to return something sane.
+    sinon.replace(fakePlug, 'getRemainingDeviationMinutes', sinon.fake.resolves(15));
+
+    return fakePlug;
+  }
+
+  /**
+   * Runs the code to control the fan state, and then checks to make sure it actually had the expected state result.
+   *
+   * @param fakePlug - Fake plug that is being controlled
+   * @param fanSettings - Settings used to control the function
+   * @param expectedState - Expected plug state after running the function.
+   */
+  async function _runAndCheck (fakePlug: FakeSmartPlug, fanSettings: ITPLinkFanSetting, expectedState: PlugState) {
+    await checkAndSetFanState(fanSettings);
+
+    expect(fakePlug.plugState).to.eql(expectedState);
+  }
+
+  /**
    * Sets up fake handlers for common methods.
    *
    * @param fanSettings - Settings for the fan
@@ -150,25 +196,11 @@ describe('checkAndSetFanState', function () {
    * @param expectedState - Expected final switch state
    * @param deviation - (Default: false) what checkForDeviation returns
    */
-  async function _setupAndRun (fanSettings: ITPLinkFanSetting, fakeTowers: IFakeTowers, initialState: PlugState, expectedState: PlugState, deviation = false) {
-    const fakePlug = await getFakeSmartPlug(fanSettings, initialState);
+  async function _setupAndRun (fanSettings: ITPLinkFanSetting, fakeTowers: IFakeTowers, initialState: PlugState, expectedState: PlugState, deviation = false): Promise<FakeSmartPlug> {
+    const fakePlug = await _setup(fanSettings, fakeTowers, initialState, deviation);
+    await _runAndCheck(fakePlug, fanSettings, expectedState);
 
-    sinon.replace(apiMethods, 'createSmartPlug', sinon.fake.resolves(fakePlug));
-    sinon.replace(acuparse, 'getTower', sinon.stub().callsFake(fakeTowerHandler(fakeTowers)));
-
-    // Fake out functions on the smart plug
-    const deviationResult: IDeviationResult<PlugState> = {
-      isDeviated: deviation,
-      currentState: initialState,
-      expectedState: null
-    };
-
-    sinon.replace(fakePlug, 'checkForDeviation', sinon.fake.resolves(deviationResult));
-    sinon.replace(fakePlug, 'getRemainingDeviationMinutes', sinon.fake.resolves(15));
-
-    await checkAndSetFanState(fanSettings);
-
-    expect(fakePlug.plugState).to.eql(expectedState);
+    return fakePlug;
   }
 
   it('should turn on fan', async function () {
@@ -269,5 +301,27 @@ describe('checkAndSetFanState', function () {
     const finalState = PlugState.On;
 
     await _setupAndRun(fanSettings, fakeTowers, initialState, finalState);
+  });
+
+  it('should turn off fan and leave it off until temperature raises by 1 degree.', async function () {
+    const fanSettings: ITPLinkFanSetting = getFakeFanSetting({ tempThreshold: 60, outsideSourceID: '' });
+    const fakeTowers: IFakeTowers = getFakeTowerSettings(fanSettings, 59.6);
+
+    const initialState = PlugState.On;
+
+    // Should still be on at 59.6
+    const fakePlug = await _setupAndRun(fanSettings, fakeTowers, initialState, PlugState.On);
+
+    // Should turn off at 59.5
+    fakeTowers.inside.temperature = 59.5;
+    await _runAndCheck(fakePlug, fanSettings, PlugState.Off);
+
+    // Should stay off even if we raise back to 60.4
+    fakeTowers.inside.temperature = 60.4;
+    await _runAndCheck(fakePlug, fanSettings, PlugState.Off);
+
+    // Should turn on at 60.5
+    fakeTowers.inside.temperature = 60.5;
+    await _runAndCheck(fakePlug, fanSettings, PlugState.On);
   });
 });

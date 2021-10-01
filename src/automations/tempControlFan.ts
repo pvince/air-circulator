@@ -51,10 +51,16 @@ export async function checkAndSetFanState (fanSetting: ITPLinkFanSetting) {
       const outsideTempF = outsideTower?.tempF ?? 0;
 
       // Determine the target state.
-      if (insideTempF >= fanSetting.tempThreshold && insideTempF > outsideTempF) {
+      const fanOffThreshold = fanSetting.tempThreshold - 0.5;
+      const fanOnThreshold = fanSetting.tempThreshold + 0.5;
+
+      if (insideTempF >= fanOnThreshold && insideTempF > outsideTempF) {
         stateTarget = PlugState.On;
-      } else {
+      } else if (insideTempF <= fanOffThreshold || insideTempF <= outsideTempF) {
         stateTarget = PlugState.Off;
+      } else {
+        // This is probably the region between fanOffThreshold <--> fanOnThreshold, so we are not going to do anything.
+        stateTarget = stateCurrent; // Don't change anything
       }
 
       // Check if we are going to change the fan state.
