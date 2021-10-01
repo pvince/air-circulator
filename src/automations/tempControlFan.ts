@@ -30,7 +30,7 @@ export async function checkAndSetFanState (fanSetting: ITPLinkFanSetting) {
   // Ensure we were able to find the plug...
   if (fanPlug !== null) {
     // Check to see if the plug state has deviated from the last time we set it.
-    if ((await fanPlug.checkForDeviation())) {
+    if (await fanPlug.checkForDeviation()) {
       msgLogger.info(`${fanSetting.name} is currently overridden to ${PlugState[await fanPlug.getState()]} for the next ${await fanPlug.getRemainingDeviationMinutes()} minutes`);
     } else {
       // Plug is still in the same state we expected it to be in...

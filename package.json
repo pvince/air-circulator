@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "mocha -r ts-node/register src/**/*.spec.ts",
+    "test": "mocha -r ts-node/register --require src/tests/hooks.spec.ts src/**/*.spec.ts",
     "search": "tsc && node dist/identify.js",
     "start": "tsc && node dist/app.js",
     "build": "rm -rf dist && tsc",
@@ -23,7 +23,7 @@
     "@typescript-eslint/eslint-plugin": "^4.28.2",
     "@typescript-eslint/parser": "^4.28.2",
     "chai": "^4.3.4",
-    "eslint": "^7.12.1",
+    "eslint": "^7.32.0",
     "eslint-config-standard": "^16.0.3",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",

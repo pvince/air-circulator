@@ -113,12 +113,12 @@ export class SmartPlug extends DataStoreAccessor {
   /**
    * IP Address for the plug
    */
-  address: string;
+  public address: string;
 
   /**
    * Device name. If we fail to find the device at the specified address, we can search for it with this name.
    */
-  name: string;
+  public name: string;
 
   /**
    * TP-Link API object
@@ -145,7 +145,7 @@ export class SmartPlug extends DataStoreAccessor {
     return this.plugClient.getDevice({ host: this.address });
   }
 
-  dataName (): string {
+  public dataName (): string {
     return this.name;
   }
 
@@ -153,7 +153,7 @@ export class SmartPlug extends DataStoreAccessor {
    * Checks that the set IP address is valid, and if not attempts to find this plug based on its name. If the plug
    * is located via its name, the IP address for this plug is automatically updated.
    */
-  async searchByName (): Promise<string|null> {
+  public async searchByName (): Promise<string|null> {
     let ipAddress;
     try {
       // Do a basic device lookup.
@@ -192,7 +192,7 @@ export class SmartPlug extends DataStoreAccessor {
   /**
    * Returns the plugs 'state' (Is it on, or is it off)
    */
-  async getState (): Promise<PlugState> {
+  public async getState (): Promise<PlugState> {
     const plugDevice = await this.getDevice();
 
     return (await plugDevice.getPowerState()) ? PlugState.On : PlugState.Off;
@@ -203,7 +203,7 @@ export class SmartPlug extends DataStoreAccessor {
    *
    * @param inPlugState - Plug state to set.
    */
-  async setPlugState (inPlugState: PlugState) {
+  public async setPlugState (inPlugState: PlugState) {
     const plugDevice = await this.getDevice();
 
     await plugDevice.setPowerState(inPlugState === PlugState.On);

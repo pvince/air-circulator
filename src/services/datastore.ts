@@ -96,12 +96,12 @@ export abstract class DataStoreAccessor {
   /**
    * Name used to store this data into cache
    */
-  abstract dataName(): string;
+  public abstract dataName(): string;
 
   /**
    * Gets the current state of the item we are tracking.
    */
-  abstract getState(): Promise<any>;
+  public abstract getState(): Promise<any>;
 
   /**
    * If there is a deviation time stored, this determines how long ago it happened in minutes.
@@ -110,7 +110,7 @@ export abstract class DataStoreAccessor {
    * @returns - Returns how long ago in minutes the deviation was noticed.
    * @private
    */
-  _getDeviationDifference (devData: IDeviationData | null): number {
+  private static _getDeviationDifference (devData: IDeviationData | null): number {
     if (_.isString(devData?.deviationDate)) {
       // @ts-ignore
       devData.deviationDate = new Date(devData.deviationDate);
@@ -123,9 +123,9 @@ export abstract class DataStoreAccessor {
   /**
    * If there is an active deviation data with a deviation date, find out how much longer it is active, in minutes.
    */
-  async getRemainingDeviationMinutes (): Promise<number> {
+  public async getRemainingDeviationMinutes (): Promise<number> {
     const deviationData = await getDeviationData(this.dataName());
-    return DEVIATION_LIMIT - this._getDeviationDifference(deviationData);
+    return DEVIATION_LIMIT - DataStoreAccessor._getDeviationDifference(deviationData);
   }
 
   /**
@@ -133,7 +133,7 @@ export abstract class DataStoreAccessor {
    *
    * @returns Returns true if we are in an active 'deviation' state, false otherwise.
    */
-  async checkForDeviation (): Promise<boolean> {
+  public async checkForDeviation (): Promise<boolean> {
     const currentState = await this.getState();
 
     let result = false;
@@ -148,7 +148,7 @@ export abstract class DataStoreAccessor {
           result = true;
           previousData.deviationDate = new Date();
           await saveData();
-        } else if (this._getDeviationDifference(previousData) <= DEVIATION_LIMIT) {
+        } else if (DataStoreAccessor._getDeviationDifference(previousData) <= DEVIATION_LIMIT) {
           // We have previously detected the deviation, but it occurred in the last 60 minutes
           // so continue to report that we are in a deviation state.
           result = true;
@@ -171,7 +171,7 @@ export abstract class DataStoreAccessor {
   /**
    * Ensures our current state data gets written to the saved data
    */
-  async storeState () {
+  public async storeState () {
     const currentState = await this.getState();
     await setData(this.dataName(), currentState);
     await saveData();
