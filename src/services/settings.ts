@@ -98,6 +98,11 @@ export interface IAcuparseSettings {
    * Bedroom Tower ID
    */
   bedroomTowerID: string;
+
+  /**
+   * Outside Tower ID
+   */
+  outsideTowerID: string;
 }
 
 /**
@@ -199,7 +204,8 @@ const DEFAULT_SETTINGS: ISettings = {
     hostname: '',
     officeTowerID: '',
     diningTowerID: '',
-    bedroomTowerID: ''
+    bedroomTowerID: '',
+    outsideTowerID: 'main'
   },
   radioTherm: {
     hostname: '',

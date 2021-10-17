@@ -19,7 +19,7 @@ async function runScript (settings: ISettings) {
   const office = await acuparse.getTower(settings.acuparse.officeTowerID);
   const dining = await acuparse.getTower(settings.acuparse.diningTowerID);
   const bedroom = await acuparse.getTower(settings.acuparse.bedroomTowerID);
-  const outside = await acuparse.getTower(settings.tplink.houseFan.outsideSourceID);
+  const outside = await acuparse.getTower(settings.acuparse.outsideTowerID);
 
   const outputData = [office, dining, bedroom, outside];
   msgLogger.info('\n' + columnify(outputData, {
@@ -54,15 +54,20 @@ async function runScript (settings: ISettings) {
     logError('Failed to check or set office fan state.', err);
   }
 
+  try {
+    await checkAndSetFanState(settings.tplink.houseFan);
+  } catch (err) {
+    logError('Failed to check or set the house fan state.', err);
+  }
+
   if (!bIsThermostatActive) {
     try {
-      await checkAndSetFanState(settings.tplink.houseFan);
       await checkAndSetFanState(settings.tplink.boxFan);
     } catch (err: unknown) {
       logError('Failed to check or set house fan state.', err);
     }
   } else {
-    msgLogger.info('Thermostat is controlling temperature. Skipping setting house & box fan.');
+    msgLogger.info('Thermostat is controlling temperature. Skipping setting box fan.');
   }
   // Check & set the office fan.
 }

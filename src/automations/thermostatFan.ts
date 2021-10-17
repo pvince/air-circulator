@@ -44,7 +44,7 @@ export async function checkAndSetThermostat (settings: ISettings, officeTemperat
       msgLogger.info(`Currently office is ${tempDiff} warmer than the setpoint`);
 
       // Check & set the whole house fan
-      if (tempDiff >= settings.radioTherm.temperatureDiff) {
+      if (Math.abs(tempDiff) >= settings.radioTherm.temperatureDiff) {
         if (tstat.fmode !== FanMode.On) {
           await setThermostatFanMode(FanMode.On);
         } else {

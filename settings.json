@@ -10,9 +10,9 @@
     "houseFan": {
       "address": "192.168.1.70",
       "name": "House Fan",
-      "insideSourceID": "00010242",
-      "outsideSourceID": "main",
-      "tempThreshold": 60
+      "insideSourceID": "00006248",
+      "outsideSourceID": "",
+      "tempThreshold": 70
     },
     "boxFan": {
       "address": "192.168.1.224",
@@ -26,10 +26,11 @@
     "hostname": "http://192.168.1.126",
     "officeTowerID": "00015652",
     "diningTowerID": "00002056",
-    "bedroomTowerID": "00010242"
+    "bedroomTowerID": "00010242",
+    "outsideTowerID": "main"
   },
   "radioTherm": {
     "hostname": "http://192.168.1.235",
-    "temperatureDiff": 6
+    "temperatureDiff": 3
   }
 }
