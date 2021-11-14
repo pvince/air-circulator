@@ -1,7 +1,5 @@
 /**
  * @file Automated tests for automating fan state changes
- * @copyright 2016-2021 Perforce Software, Inc. and its subsidiaries.
- * All contents of this file are considered Perforce Software proprietary.
  */
 
 import { describe, it } from 'mocha';

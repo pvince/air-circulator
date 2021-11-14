@@ -1,7 +1,5 @@
 /**
  * @file Automations related to checking & setting the thermostat fan mode.
- * @copyright 2016-2021 Perforce Software, Inc. and its subsidiaries.
- * All contents of this file are considered Perforce Software proprietary.
  */
 
 import { FanMode, FanState, ThermostatMode, ThermostatState } from '../radiothermostat/types';

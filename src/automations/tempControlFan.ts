@@ -1,7 +1,5 @@
 /**
  * @file Automates a fan on a TP-Link plug based on the temperature retrieved from Acuparse.
- * @copyright 2016-2021 Perforce Software, Inc. and its subsidiaries.
- * All contents of this file are considered Perforce Software proprietary.
  */
 import { ITPLinkFanSetting, msgLogger, statLogger } from '../services/settings';
 import { apiMethods, PlugState, SmartPlug } from '../tplink/api';
